@@ -1,0 +1,33 @@
+{
+  "name": "p2p-collaborative",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www",
+    "test": "jest"
+  },
+  "dependencies": {
+    "cookie-parser": "~1.4.4",
+    "debug": "~2.6.9",
+    "express": "~4.16.1",
+    "http-errors": "~1.6.3",
+    "ipfs": "^0.41.0",
+    "ipfs-http-client": "^42.0.0",
+    "ipfsd-ctl": "^3.0.0",
+    "moment": "^2.24.0",
+    "morgan": "~1.9.1",
+    "pug": "^2.0.4",
+    "pull-stream": "^3.6.14",
+    "readline-sync": "^1.4.10"
+  },
+  "devDependencies": {
+    "jest": "^25.1.0",
+    "supertest": "^4.0.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coveragePathIgnorePatterns": [
+      "/node_modules/"
+    ]
+  }
+}
