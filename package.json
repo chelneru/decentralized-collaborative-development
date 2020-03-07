@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "cookie-parser": "~1.4.4",
+    "dat-sdk": "^1.0.3",
     "debug": "~2.6.9",
     "express": "~4.16.1",
     "http-errors": "~1.6.3",
@@ -21,6 +22,7 @@
     "readline-sync": "^1.4.10"
   },
   "devDependencies": {
+    "hyperdrive-multiwriter": "^1.1.1",
     "jest": "^25.1.0",
     "supertest": "^4.0.2"
   },
