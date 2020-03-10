@@ -11,10 +11,16 @@ class DatSystem {
     async Init(test) {
         let self = this;
         self.ready = false;
-
+        let persist = null;
+        if(test === undefined) {
+            persist = true;
+        }
+        else {
+            persist = !test;
+        }
         this.archive = Hyperdrive(null, {
             title:'Local archive',
-            persist: true,
+            persist: persist,
 
             storage: null  //storage: RAI
         });

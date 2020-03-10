@@ -7,14 +7,15 @@
     "test": "jest"
   },
   "dependencies": {
+    "@babel/runtime": "^7.8.7",
     "cookie-parser": "~1.4.4",
     "dat-sdk": "^1.0.3",
     "debug": "~2.6.9",
     "express": "~4.16.1",
     "http-errors": "~1.6.3",
-    "ipfs": "^0.41.0",
-    "ipfs-http-client": "^42.0.0",
-    "ipfsd-ctl": "^3.0.0",
+    "ipfs": "^0.41.2",
+    "it-all": "^1.0.1",
+    "libp2p-pnet": "^0.1.0",
     "moment": "^2.24.0",
     "morgan": "~1.9.1",
     "pug": "^2.0.4",
@@ -22,6 +23,12 @@
     "readline-sync": "^1.4.10"
   },
   "devDependencies": {
+    "@babel/cli": "^7.0.0",
+    "@babel/core": "^7.8.7",
+    "@babel/plugin-transform-runtime": "^7.8.3",
+    "@babel/preset-env": "^7.8.7",
+    "@babel/register": "^7.8.6",
+    "cids": "latest",
     "hyperdrive-multiwriter": "^1.1.1",
     "jest": "^25.1.0",
     "supertest": "^4.0.2"
