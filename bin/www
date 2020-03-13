@@ -98,8 +98,8 @@ function onListening() {
 
     async function main () {
         let node = await IpfsSystem.create();
-        let result = await node.AddFile('/hello.text','hello there');
-        console.log(JSON.stringify(result));
+        node.PublishFileTest();
+// console.log(newPeerInfo);
     }
     main();
 

@@ -15,7 +15,6 @@
     "http-errors": "~1.6.3",
     "ipfs": "^0.41.2",
     "it-all": "^1.0.1",
-    "libp2p-pnet": "^0.1.0",
     "moment": "^2.24.0",
     "morgan": "~1.9.1",
     "pug": "^2.0.4",
@@ -31,7 +30,10 @@
     "cids": "latest",
     "hyperdrive-multiwriter": "^1.1.1",
     "jest": "^25.1.0",
-    "supertest": "^4.0.2"
+    "libp2p": "^0.27.3",
+    "peer-info": "^0.17.5",
+    "supertest": "^4.0.2",
+    "delay": "latest"
   },
   "jest": {
     "testEnvironment": "node",

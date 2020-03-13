@@ -49,12 +49,15 @@ describe('Test IPFS start daemon', () => {
         expect(CID.isCID(new CID(res.cid))).toEqual(true);
     });
     test('publish main folder', async () => {
-        await node.PublishMainFolder();
+        // await node.PublishMainFolder();
+        expect(node.main_folder_addr).not.toBeNull();
 
-        let main_folder_addr = await node.GetMainFolderAddr();
-        const res = await node.GetFileInfo(main_folder_addr);
+        const res = await node.GetFileInfo(node.main_folder_addr);
+
         expect(res).toHaveProperty('type');
+
         expect(res).toHaveProperty('cid');
+
         expect(CID.isCID(new CID(res.cid))).toEqual(true);
     });
 
