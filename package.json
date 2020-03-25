@@ -28,12 +28,13 @@
     "@babel/preset-env": "^7.8.7",
     "@babel/register": "^7.8.6",
     "cids": "latest",
+    "delay": "latest",
     "hyperdrive-multiwriter": "^1.1.1",
+    "ipfs-http-client": "^42.0.0",
     "jest": "^25.1.0",
     "libp2p": "^0.27.3",
     "peer-info": "^0.17.5",
-    "supertest": "^4.0.2",
-    "delay": "latest"
+    "supertest": "^4.0.2"
   },
   "jest": {
     "testEnvironment": "node",

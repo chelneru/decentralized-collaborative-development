@@ -3,10 +3,12 @@
 const IPFS = require('ipfs');
 const helpers = require('../misc/helpers');
 const fs = require('fs');
+const path = require('path');
 const Protector = require('libp2p/src/pnet');
+const ipfsClient = require('ipfs-http-client');
 import os from 'os';
 
-const delay = require('delay')
+const delay = require('delay');
 const general_topic = 'peer-general';
 let folder_path = '/main_folder';
 
@@ -30,17 +32,21 @@ class IpfsSystem {
                 };
             }
         }
-        let swarm_key = fs.readFileSync(swarmKeyPath);
-        // options.EXPERIMENTAL = {
-        //     ipnsPubsub: true
-        // };
-        options.libp2p = {
-            config: {
-                dht: {
-                    enabled: true
-                }
-            }
+        options.API= '/ip4/127.0.0.1/tcp/5012';
+        options.Gateway= '/ip4/127.0.0.1/tcp/9191';
+        let swarm_key= fs.readFileSync(swarmKeyPath);
+        options.EXPERIMENTAL = {
+            ipnsPubsub: true
         };
+
+
+        // options.libp2p = {
+        //     config: {
+        //         dht: {
+        //             enabled: true
+        //         }
+        //     }
+        // };
 
         if (private_network === true) {
             options.libp2p.modules = {
@@ -49,9 +55,14 @@ class IpfsSystem {
         }
         this.other_nodes = [];
         let self = this;
-        options.silent = true; //disable console cluttering
-console.log(options);
-        this.node = await IPFS.create(options);
+        // options.silent = true; //disable console cluttering
+        // console.log(options);
+        this.node = ipfsClient('/ip4/127.0.0.1/tcp/5001');
+        // this.node = await IPFS.create(options);
+
+
+
+
         const receiveMsg = async function (msg) {
             // console.log(this.id, ' received message ', msg);
             let res = JSON.parse(msg.data);
@@ -118,12 +129,21 @@ console.log(options);
 
     async initialize(options) {
 
-
         this.id_json = await this.node.id();
         this.addresses = this.id_json.addresses;
         this.id = this.id_json.id;
         folder_path = '/folder' + this.id;
 
+
+        //display swarm addresses
+        let localAddrs = await this.node.swarm.localAddrs();
+        console.log('local addresses');
+        let localAddrsString = "";
+        for(let addrs of localAddrs) {
+            localAddrsString +="\""+addrs.toString()+'/ipfs/'+this.id+"\",\n";
+        }
+        localAddrsString = localAddrsString.substring(0, localAddrsString.length - 2);
+        console.log(localAddrsString);
         //get repo info
         this.repoInfo = await this.node.repo.stat();
         this.repoInfo = this.repoInfo.repoPath;
@@ -131,31 +151,31 @@ console.log(options);
         if (app.locals.config === undefined) {
             helpers.InitializeConfig(this.repoInfo);
         }
-        await this.PublishMainFolder();
-
-        this.node.libp2p.on('peer:connect', async peerInfo => {
-
-            let swarm_peers = await this.GetConnectedPeers();
-
-
-            // console.log('swarm peers ', swarm_peers.length);
-
-
-            if (swarm_peers.length > 1) {
-                let message = JSON.stringify({
-                    id: this.id,
-                    status: 'new_node_repo_addr',
-                    repo_addr: this.main_folder_addr
-                });
-                await new Promise(resolve => setTimeout(resolve, 3000)); // 3 sec
-
-                let topic_peers = await this.node.pubsub.peers(general_topic);
-                console.log('general topic peers ', topic_peers.length);
-                await this.node.pubsub.publish(general_topic, message);
-                console.log(this.id, ' sent message', message);
-            }
-
-        });
+        // await this.PublishMainFolder();
+        //
+        // this.node.libp2p.on('peer:connect', async peerInfo => {
+        //
+        //     let swarm_peers = await this.GetConnectedPeers();
+        //
+        //
+        //     // console.log('swarm peers ', swarm_peers.length);
+        //
+        //
+        //     if (swarm_peers.length > 1) {
+        //         let message = JSON.stringify({
+        //             id: this.id,
+        //             status: 'new_node_repo_addr',
+        //             repo_addr: this.main_folder_addr
+        //         });
+        //         await new Promise(resolve => setTimeout(resolve, 3000)); // 3 sec
+        //
+        //         let topic_peers = await this.node.pubsub.peers(general_topic);
+        //         console.log('general topic peers ', topic_peers.length);
+        //         await this.node.pubsub.publish(general_topic, message);
+        //         console.log(this.id, ' sent message', message);
+        //     }
+        //
+        // });
 
         return this;
 
@@ -174,16 +194,75 @@ console.log(options);
 
     async AddFile(path, file_contents) {
 
-        for await (const file of await this.node.add({
-            path: path,
-            content: file_contents
-        })) {
+        for await (const file of await this.node.files.write(
+            path,
+           file_contents,{create:true})) {
+            console.log('added file ',JSON.stringify(file));
             return file;
         }
 
     }
 
+    async AddFolder(pathString, parentString) {
+        let self = this;
+        let folderStat = fs.lstatSync(pathString);
+        let folderName = path.basename(pathString);
+        console.log('creating folder ', folderName);
+        if (folderStat.isFile()) {
+            throw new Error('path leads to a file and not a folder');
+        }
+        //create folder
+        try {
+            if (parentString === '') {
+                await this.node.files.mkdir('/' + folderName, {parents:true});
+            } else {
+                await this.node.files.mkdir(parentString + '/' + folderName);
+            }
+        } catch (e) {
+            console.log('Error creating folder on IPFS: ', e.toString());
+        }
+        //add all contents
+        fs.readdirSync(pathString, function (err, files) {
+            //handling error
+            if (err) {
+                return console.log('Unable to scan directory: ' + err);
+            }
+            //listing all files using forEach
+            // console.log('listing all files from folder ',folderName);
+            files.forEach( async function (file) {
+                // Do whatever you want to do with the file
+                let fileStat = fs.lstatSync(pathString + '/' + file);
+                if (fileStat.isFile()) {
+                    console.log(file, ' is a file');
+                    fs.readFileSync(pathString + '/' + file, async(err, data) => {
+                        if (err) {
+                            console.error(err);
+                            return
+                        }
+                        await self.AddFile( parentString+'/'+folderName+ '/' + file, data);
+                        // console.log('contents for file ',file,' is ',data);
+                    })
+                } else {
+                    console.log(file, ' is a folder');
+                    await self.AddFolder(pathString + '/' + file, '/' + folderName + '/');
+                }
+            });
+        });
+        if(parentString === '') {
+            //this is the initial call
+            let res = await this.node.files.stat('/' + folderName);
+            let pub_res = await this.node.name.publish(res.cid.toString());
+            console.log('folder ',folderName,' published at ',pub_res.name);
+        }
+    }
+
     async GetFileInfo(path) {
+
+        for await (const file of await this.node.get(path)) {
+            return file;
+        }
+    }
+    async GetFolderInfo(path) {
 
         for await (const file of await this.node.get(path)) {
             return file;
@@ -204,10 +283,10 @@ console.log(options);
         console.log('main folder address', result.cid.toString());
         try {
 
-            let publish_value = result.cid.toString();
 
-            this.main_folder_addr = publish_value;
-            app.locals.config.main_folder_addr = publish_value;
+            let pub_result = await this.node.name.publish(result.cid.toString())
+            this.main_folder_addr = pub_result.name;
+            app.locals.config.main_folder_addr = pub_result.name;
         } catch (e) {
             console.log('Error name publishing', e.toString());
         }
@@ -216,14 +295,6 @@ console.log(options);
 
     }
 
-    async GetMainFolderAddr() {
-        try {
-            return this.node.files.stat(folder_path);
-        } catch (e) {
-            console.log('main folder not found', e.toString());
-            return null;
-        }
-    }
 
     async GetAllFiles() {
         let ipfs_path = '/ipfs/' + this.id + '/hello-world.txt';
@@ -252,22 +323,25 @@ console.log(options);
     }
 
     async PublishFileTest() {
-let self = this;
-        let filesAdded = this.AddFile('hello2.txt','hello world!').then(function (file) {
-            console.log('Added file:', file,)
+        let self = this;
+        try {
+
+            let file = await this.AddFile('hello2.txt', 'hello world!');
+            console.log('Added file:', file);
+
             try {
-                let value = file.cid.toString();
-                self.node.name.publish(value);
+                let value = '/ipfs/'+file.cid.toString();
+                // await this.node.publish(value);
+                console.log(value);
+                let pub_res = await self.node.name.publish(value);
+                console.log(' result for publishing',pub_res);
+            } catch (e) {
+                console.log('name publish error:', e.toString());
             }
-            catch (e) {
-                console.log('name publish error:',e.toString());
-            }
-        });
-
-
+        } catch (e) {
+            console.log('name publish error:', e.toString());
+        }
     }
-
-
 }
 
 module.exports = IpfsSystem;

@@ -98,8 +98,8 @@ function onListening() {
 
     async function main () {
         let node = await IpfsSystem.create();
-        node.PublishFileTest();
-// console.log(newPeerInfo);
+        let res = node.AddFolder('C:\\Users\\Alin\\testfolder','');
+
     }
     main();
 

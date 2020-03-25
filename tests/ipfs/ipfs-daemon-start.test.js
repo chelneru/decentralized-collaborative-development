@@ -7,12 +7,14 @@ describe('Test IPFS start daemon', () => {
     let node;
     let res;
     beforeAll(async () => {
+        jest.setTimeout(50000);
         node = await IpfsSystem.create();
         res = await node.node.id();
     });
     afterAll(async () => {
         await node.node.stop();
     });
+
     test('should test that we can retrieve node id information', () => {
         expect(res).toHaveProperty('id');
         expect(typeof res.id).toBe('string');
@@ -59,6 +61,16 @@ describe('Test IPFS start daemon', () => {
         expect(res).toHaveProperty('cid');
 
         expect(CID.isCID(new CID(res.cid))).toEqual(true);
+    });
+
+    test('add folder', async () => {
+        // await node.PublishMainFolder();
+        node.AddFolder('C:\\Users\\Alin\\testfolder','').then(async function () {
+            let result = await node.node.files.stat('/testfolder');
+            console.log('stat result', JSON.stringify(result));
+        });
+        console.log('add folder resut : ',JSON.stringify(res));
+
     });
 
 });
