@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Home Page</title>
+
+    <link rel="stylesheet" type="text/css" href="/stylesheets/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+
+
+</head>
+
+<body>
+<div class="node-info">
+    <div class="row id-row">
+        <div class="row-label">Peer ID:</div>
+        <div class="row-value"><%= peer_id %></div>
+    </div>
+    <div class="row status-row">
+        <div class="row-label">Peer Status:</div>
+        <div class="row-value"></div>
+    </div>
+    <div class="row main-folder-addr">
+        <div class="row-label">Main folder address:</div>
+        <div class="row-value"></div>
+    </div>
+    <div class="row local-addrs-row">
+        <div class="row-label">Swarm Local Address:</div>
+        <div class="row-value"></div>
+    </div>
+    <div class="row peers-row">
+        <div class="row-label">Swarm Connected Peers:</div>
+        <div class="row-value"></div>
+
+    </div>
+
+</div>
+</body>
+<script
+        src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+        crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        $.ajax({
+            url: 'http://localhost:3000/node/info',
+            type: 'POST',
+            dataType: 'json',
+            success(response) {
+                console.log(response);
+                if (response.localAddrs !== undefined) {
+                    $('.local-addrs-row .row-value').text(response.localAddrs);
+                }
+                if (response.swarm_peers !== undefined) {
+                    $('.peers-row .row-value').text(response.swarm_peers.length);
+                }
+                if (response.main_folder !== undefined) {
+                    $('.main-folder-addr .row-value').text(response.main_folder);
+                }
+            },
+            error(jqXHR, status, errorThrown) {
+                console.log(jqXHR);
+
+            }
+        });
+    });
+</script>
+</html>

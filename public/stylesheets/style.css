@@ -1,8 +1,14 @@
-body {
-  padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+.node-info {
+    width: 50%;
+    border: 1px solid black;
 }
 
-a {
-  color: #00B7FF;
+.row .row-label {
+    display: inline-block;
+    width: 19%;
+}
+.row .row-value {
+    display: inline-block;
+    width: 50%;
+
 }

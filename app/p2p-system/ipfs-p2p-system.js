@@ -21,7 +21,18 @@ class IpfsSystem {
 
     }
 
-    async CreateIPFSNode(options, private_network) {
+
+    createHttpClient() {
+        return ipfsClient('/ip4/127.0.0.1/tcp/5001');
+    }
+    async createJsClient(options,private_network) {
+
+        if(private_network === true) {
+            console.log('\x1b[36m%s\x1b[0m','Node initialized in private network.');
+        }
+        else {
+            console.log('\x1b[36m%s\x1b[0m','Node initialized in public network.');
+        }
         if (options === undefined) {
             options = {};
             if (private_network === true) {
@@ -38,7 +49,7 @@ class IpfsSystem {
         options.EXPERIMENTAL = {
             ipnsPubsub: true
         };
-
+        options.silent = true; //disable console cluttering
 
         // options.libp2p = {
         //     config: {
@@ -48,78 +59,64 @@ class IpfsSystem {
         //     }
         // };
 
+
         if (private_network === true) {
             options.libp2p.modules = {
                 connProtector: new Protector(swarm_key)
             };
         }
+        return await IPFS.create(options);
+    }
+    async CreateIPFSNode(options, private_network) {
+
+
+
         this.other_nodes = [];
         let self = this;
-        // options.silent = true; //disable console cluttering
-        // console.log(options);
-        this.node = ipfsClient('/ip4/127.0.0.1/tcp/5001');
-        // this.node = await IPFS.create(options);
-
-
-
-
+        this.node = await this.createJsClient();
         const receiveMsg = async function (msg) {
-            // console.log(this.id, ' received message ', msg);
             let res = JSON.parse(msg.data);
-            // console.log(res);
-            let index = self.other_nodes.findIndex(i => i.id === res.id);
-
+            //ignore message from self
+            if(msg.from !== self.id) {
+            console.log('received message: ',msg);
             switch (res.status) {
                 case 'new_node_repo_addr':
-                    console.log('received new node ');
-                    if (index === -1) {
-                        self.other_nodes.push({
-                            id: res.id,
-                            repo_addr: res.repo_addr
-                        });
-                    } else {
-                        self.other_nodes[index] = {
-                            id: res.id,
-                            repo_addr: res.repo_addr
-                        }
-                    }
+                    console.log('received new node ',res.id,' need to respond.');
+                   self.other_nodes = await helpers.UpdateOtherNodeInfo({
+                        id: res.id,
+                        folders: res.folders
+                    },self.repoInfo,self);
                     //reply with self info
                     let message = JSON.stringify({
-                        id: this.id,
+                        id: self.id,
                         status: 'response_new_node_repo_addr',
-                        repo_addr: this.main_folder_addr
+                        repo_addr: self.folders
                     });
                     await self.node.pubsub.publish(general_topic, message);
                     break;
                 case 'response_new_node_repo_addr':
-                    console.log('received new node ');
-                    if (index === -1) {
-                        self.other_nodes.push({
-                            id: res.id,
-                            repo_addr: res.repo_addr
-                        });
-                    } else {
-                        self.other_nodes[index] = {
-                            id: res.id,
-                            repo_addr: res.repo_addr
-                        }
-                    }
+                    console.log('received new node ',res.id,', no need to respond.');
+                    self.other_nodes = await helpers.UpdateOtherNodeInfo({
+                        id: res.id,
+                        folders: res.folders
+                    },self.repoInfo,self);
                     break;
                 case 'remove_node_repo_addr':
                     console.log('removed node node ');
-
-                    if (index !== -1) {
-                        this.other_nodes.splice(index, 1);
-                    }
+                   //TODO
                     break;
             }
-
+            }
+            else {
+                // log self messages
+                let res = JSON.parse(msg.data);
+                console.log('self: ',res.status);
+            }
 
         };
 
         try {
-            let res = await this.node.pubsub.subscribe(general_topic, receiveMsg);
-            console.log('subscribe result ', res);
+            await this.node.pubsub.subscribe(general_topic, receiveMsg);
 
         } catch (e) {
             console.log('Subscribe error : ', e.toString());
@@ -132,53 +129,41 @@ class IpfsSystem {
         this.id_json = await this.node.id();
         this.addresses = this.id_json.addresses;
         this.id = this.id_json.id;
-        folder_path = '/folder' + this.id;
 
 
         //display swarm addresses
-        let localAddrs = await this.node.swarm.localAddrs();
-        console.log('local addresses');
-        let localAddrsString = "";
-        for(let addrs of localAddrs) {
-            localAddrsString +="\""+addrs.toString()+'/ipfs/'+this.id+"\",\n";
-        }
-        localAddrsString = localAddrsString.substring(0, localAddrsString.length - 2);
-        console.log(localAddrsString);
+        this.localAddrs = await this.node.swarm.localAddrs();
         //get repo info
         this.repoInfo = await this.node.repo.stat();
         this.repoInfo = this.repoInfo.repoPath;
         //initialize config file
-        if (app.locals.config === undefined) {
-            helpers.InitializeConfig(this.repoInfo);
+        if (this.config === undefined) {
+            this.config = await helpers.InitializeConfig(this.repoInfo,this);
         }
-        // await this.PublishMainFolder();
-        //
-        // this.node.libp2p.on('peer:connect', async peerInfo => {
-        //
-        //     let swarm_peers = await this.GetConnectedPeers();
-        //
-        //
-        //     // console.log('swarm peers ', swarm_peers.length);
-        //
-        //
-        //     if (swarm_peers.length > 1) {
-        //         let message = JSON.stringify({
-        //             id: this.id,
-        //             status: 'new_node_repo_addr',
-        //             repo_addr: this.main_folder_addr
-        //         });
-        //         await new Promise(resolve => setTimeout(resolve, 3000)); // 3 sec
-        //
-        //         let topic_peers = await this.node.pubsub.peers(general_topic);
-        //         console.log('general topic peers ', topic_peers.length);
-        //         await this.node.pubsub.publish(general_topic, message);
-        //         console.log(this.id, ' sent message', message);
-        //     }
-        //
-        // });
+        this.other_nodes = await helpers.InitializeNodeInfo(this.repoInfo,this);
+        this.config.main_folder_addr = "not published yet";
+        this.config.folders = await this.node.files.ls('/');
 
+        await this.PublishMainFolder();
+        let selfNode = this;
+        this.node.libp2p.on('peer:connect', async (peer) =>  {
+        console.log(JSON.stringify(peer));
+        console.log('peer connected event at node ',selfNode.id,"!");
+            let swarm_peers = await selfNode.GetConnectedPeers();
+            if (swarm_peers.length > 1) {
+                let message = JSON.stringify({
+                    id: selfNode.id,
+                    status: 'new_node_repo_addr',
+                    folders: selfNode.config.folders
+                });
+                await new Promise(resolve => setTimeout(resolve, 3000)); // 3 sec
+                let topic_peers = await selfNode.node.pubsub.peers(general_topic);
+                console.log('general topic peers ', topic_peers.length);
+                await selfNode.node.pubsub.publish(general_topic, message);
+                console.log(selfNode.id, ' sent message', message);
+            }
+        });
         return this;
-
     }
 
     static async create(options, private_network) {
@@ -273,25 +258,30 @@ class IpfsSystem {
         let peer = this.node;
         let repoPath = this.repoInfo;
         let result = null;
-
+        let stat;
+        try{
+        stat = await peer.files.stat(folder_path);
+        }
+        catch (e) {
+            
+        }
         try {
-            await peer.files.mkdir(folder_path);
+            if(stat === undefined) {
+                await peer.files.mkdir(folder_path);
+            }
         } catch (e) {
             console.log('Error publishing', e.toString());
         }
         result = await peer.files.stat(folder_path);
         console.log('main folder address', result.cid.toString());
         try {
-
-
-            let pub_result = await this.node.name.publish(result.cid.toString())
-            this.main_folder_addr = pub_result.name;
-            app.locals.config.main_folder_addr = pub_result.name;
+            let pub_result = await this.node.name.publish(result.cid.toString());
+            this.config.main_folder_addr = pub_result.name;
         } catch (e) {
             console.log('Error name publishing', e.toString());
         }
 
-        helpers.UpdateConfig(repoPath);
+        helpers.UpdateConfig(repoPath,this);
 
     }
 
@@ -342,6 +332,105 @@ class IpfsSystem {
             console.log('name publish error:', e.toString());
         }
     }
+
+    async PublishFile(cidHash) {
+
+        let value = '/ipfs/'+cidHash.toString();
+        try {
+        let pub_res = await this.node.name.publish(value);
+        console.log(pub_res.name);
+        return pub_res.name;
+        } catch (e) {
+            console.log('name publish error:', e.toString());
+            return null;
+        }
+
+    }
+
+    /*this function will store a registry consisting of a folder name and an ipns name*/
+    async StoreFolderName(ipnsName, folderName) {
+        this.config.folders.push({
+            folderName:folderName,
+            ipnsName:ipnsName
+        });
+        helpers.UpdateConfig(this.repoInfo,this);
+    }
+
+
+    /*this function will return the ipns name for a folder or null of folder is not stored*/
+    async RetrieveFolder( folderName) {
+
+        let index = self.other_nodes.findIndex(i => i.folderName === folderName);
+        if(index !== -1) {
+        return this.config.folders[index].ipnsName;
+        }
+        else {
+            return null;
+        }
+    }
+
+    async GetExistingFolders() {
+        let result = [];
+        for await (const folder of await this.node.files.ls('/')) {
+
+            if(folder.type == 'folder') {
+                let publish_res = await this.node.name.publish(folder.cid.toString());
+                result.push({
+                    folderName:folder.name,
+                    ipnsName:publish_res.name 
+                });
+            }
+        }
+
+    }
+    async  subscribeOnTopic(topic) {
+        const { spawn } = require("child_process");
+
+        const child = spawn('ipfs pubsub sub', [topic], {shell: true});
+        child.stdout.on("data", data => {
+
+            let content = JSON.parse(data);
+
+            switch(content.title) {
+                case 'information':
+                    //we have new information so we need to store it
+                    break;
+                case 'content_update':
+                    //we need to update certain information about a folder from a peer
+                    break;
+                case 'information_request':
+                    // a peer is asking for information about this peer
+                    break;
+            }
+            console.log(`stdout: ${data}`);
+
+        });
+
+        child.stderr.on("data", data => {
+            console.log(`stderr: ${data}`);
+        });
+
+        child.on('error', (error) => {
+            console.log(`error: ${error.message}`);
+        });
+
+        child.on("close", code => {
+            console.log(`child process exited with code ${code}`);
+        });
+    }
+
+  StorePeerInfo(info) {
+        this.config.peerInfo.push(info);
+        helpers.UpdateConfig(this.repoInfo,this);
+  }
+  GeneratePeerInfo() {
+        this.config = helpers.ReadConfigFile(this.repoInfo);
+
+        let peer_info = {};
+        peer_info.id = this.id;
+        peer_info.folders = this.config.folders;
+
+  }
 }
 
 module.exports = IpfsSystem;
