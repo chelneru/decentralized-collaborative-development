@@ -46,7 +46,7 @@ exports.InitializeNodeInfo = async (repoPath, node) => {
     try {
         if (await fs.exists(repoPath + '/nodeinfo')) {
             //file exists so we return it instead
-            console.log('node info file exists.');
+            // console.log('node info file exists.');
             fs.readFile(repoPath + '/nodeinfo', function read(err, data) {
                 if (err) {
                     throw err;
@@ -56,7 +56,7 @@ exports.InitializeNodeInfo = async (repoPath, node) => {
             });
         }
     } catch (err) {
-        console.log('node info file does not exist. Will create a new one.');
+        // console.log('node info file does not exist. Will create a new one.');
         let other_nodes = [];
 
         await fs.writeFile(repoPath + '/nodeinfo', JSON.stringify(other_nodes), function (err) {
@@ -69,6 +69,7 @@ exports.InitializeNodeInfo = async (repoPath, node) => {
 };
 exports.UpdateOtherNodeInfo = async (nodeInfo, repoPath, node) => {
     try {
+        console.log('updating nodeinfo file. at repopath: ',repoPath);
         if (await fs.exists(repoPath + '/nodeinfo')) {
             //file exists
             if (Array.isArray(nodeInfo)) {

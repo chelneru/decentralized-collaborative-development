@@ -7,7 +7,6 @@ describe('Test IPFS start daemon', () => {
     let node;
     let res;
     beforeAll(async () => {
-        jest.setTimeout(50000);
         node = await IpfsSystem.create();
         res = await node.node.id();
     });
@@ -32,6 +31,9 @@ describe('Test IPFS start daemon', () => {
         expect(typeof repoInfo.repoPath).toBe('string');
 
     });
+
+
+
     test('add files to the node', async () => {
         const res = await node.AddFile('/hello-world', Buffer.from('Hello, world!'));
         expect(res).toHaveProperty('path');

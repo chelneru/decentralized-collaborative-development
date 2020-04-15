@@ -19,9 +19,9 @@ let helpers = require('./app/misc/helpers');
 (async () => {
 //do initial stuff
 
-    global.node = await IpfsSystem.create();
-
-    console.log('\x1b[33m%s\x1b[0m','we set the node ', global.node.id);
+    // global.node = await IpfsSystem.create();
+    //
+    // console.log('\x1b[33m%s\x1b[0m','we set the node ', global.node.id);
 })();
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));

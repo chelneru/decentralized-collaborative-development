@@ -25,13 +25,13 @@ class IpfsSystem {
     createHttpClient() {
         return ipfsClient('/ip4/127.0.0.1/tcp/5001');
     }
-    async createJsClient(options,private_network) {
 
-        if(private_network === true) {
-            console.log('\x1b[36m%s\x1b[0m','Node initialized in private network.');
-        }
-        else {
-            console.log('\x1b[36m%s\x1b[0m','Node initialized in public network.');
+    async createJsClient(options, private_network) {
+
+        if (private_network === true) {
+            console.log('\x1b[36m%s\x1b[0m', 'Node initialized in private network.');
+        } else {
+            console.log('\x1b[36m%s\x1b[0m', 'Node initialized in public network.');
         }
         if (options === undefined) {
             options = {};
@@ -43,14 +43,15 @@ class IpfsSystem {
                 };
             }
         }
-        options.API= '/ip4/127.0.0.1/tcp/5012';
-        options.Gateway= '/ip4/127.0.0.1/tcp/9191';
-        let swarm_key= fs.readFileSync(swarmKeyPath);
+        // options.API = '/ip4/127.0.0.1/tcp/5012';
+        // options.Gateway = '/ip4/127.0.0.1/tcp/9191';
+        let swarm_key = fs.readFileSync(swarmKeyPath);
         options.EXPERIMENTAL = {
-            ipnsPubsub: true
+            pubsub: true
         };
         options.silent = true; //disable console cluttering
 
+        options.libp2p = {};
         // options.libp2p = {
         //     config: {
         //         dht: {
@@ -67,61 +68,10 @@ class IpfsSystem {
         }
         return await IPFS.create(options);
     }
+
     async CreateIPFSNode(options, private_network) {
-
-
-
         this.other_nodes = [];
-        let self = this;
-        this.node = await this.createJsClient();
-        const receiveMsg = async function (msg) {
-            let res = JSON.parse(msg.data);
-            //ignore message from self
-            if(msg.from !== self.id) {
-            console.log('received message: ',msg);
-            switch (res.status) {
-                case 'new_node_repo_addr':
-                    console.log('received new node ',res.id,' need to respond.');
-                   self.other_nodes = await helpers.UpdateOtherNodeInfo({
-                        id: res.id,
-                        folders: res.folders
-                    },self.repoInfo,self);
-                    //reply with self info
-                    let message = JSON.stringify({
-                        id: self.id,
-                        status: 'response_new_node_repo_addr',
-                        repo_addr: self.folders
-                    });
-                    await self.node.pubsub.publish(general_topic, message);
-                    break;
-                case 'response_new_node_repo_addr':
-                    console.log('received new node ',res.id,', no need to respond.');
-                    self.other_nodes = await helpers.UpdateOtherNodeInfo({
-                        id: res.id,
-                        folders: res.folders
-                    },self.repoInfo,self);
-                    break;
-                case 'remove_node_repo_addr':
-                    console.log('removed node node ');
-                   //TODO
-                    break;
-            }
-            }
-            else {
-                // log self messages
-                let res = JSON.parse(msg.data);
-                console.log('self: ',res.status);
-            }
-
-        };
-
-        try {
-            await this.node.pubsub.subscribe(general_topic, receiveMsg);
-
-        } catch (e) {
-            console.log('Subscribe error : ', e.toString());
-        }
-
+        this.node = await this.createJsClient(options, private_network);
     }
 
     async initialize(options) {
@@ -130,7 +80,60 @@ class IpfsSystem {
         this.addresses = this.id_json.addresses;
         this.id = this.id_json.id;
 
+//subscribe to pubsub
+        let self = this;
 
+        const receiveMsg = async function (msg) {
+            let res = JSON.parse(msg.data.toString());
+            //ignore message from self
+            if (msg.from !== self.id) {
+                console.log('received message: ', msg);
+                switch (res.status) {
+                    case 'new_node_repo_addr':
+                        console.log('received new node ', res.id, ' need to respond.');
+                        self.other_nodes = await helpers.UpdateOtherNodeInfo({
+                            id: res.id,
+                            folders: res.folders
+                        }, self.repoInfo, self);
+                        //reply with self info
+                        let message = JSON.stringify({
+                            id: self.id,
+                            status: 'response_new_node_repo_addr',
+                            repo_addr: self.folders
+                        });
+                        await self.node.pubsub.publish(general_topic, Buffer.from(message), (err) => {
+                            if (err) {
+                                console.error('error publishing: ', err)
+                            } else {
+                                console.log('successfully published message')
+                            }
+                        });
+                        break;
+                    case 'response_new_node_repo_addr':
+                        console.log('received new node ', res.id, ', no need to respond.');
+                        self.other_nodes = await helpers.UpdateOtherNodeInfo({
+                            id: res.id,
+                            folders: res.folders
+                        }, self.repoInfo, self);
+                        break;
+                    case 'remove_node_repo_addr':
+                        console.log('removed node node ');
+                        //TODO
+                        break;
+                }
+            } else {
+                // log self messages
+                let res = JSON.parse(msg.data);
+                console.log('self: ', res.status);
+            }
+
+        };
+        try {
+            await this.node.pubsub.subscribe(general_topic, receiveMsg);
+            console.log("\x1b[33m", self.id, ' subscribed to ', general_topic, "\x1b[0m")
+        } catch (e) {
+            console.log('Subscribe error : ', e.toString());
+        }
         //display swarm addresses
         this.localAddrs = await this.node.swarm.localAddrs();
         //get repo info
@@ -138,29 +141,41 @@ class IpfsSystem {
         this.repoInfo = this.repoInfo.repoPath;
         //initialize config file
         if (this.config === undefined) {
-            this.config = await helpers.InitializeConfig(this.repoInfo,this);
+            this.config = await helpers.InitializeConfig(this.repoInfo, this);
         }
-        this.other_nodes = await helpers.InitializeNodeInfo(this.repoInfo,this);
+        this.other_nodes = await helpers.InitializeNodeInfo(this.repoInfo, this);
         this.config.main_folder_addr = "not published yet";
         this.config.folders = await this.node.files.ls('/');
 
         await this.PublishMainFolder();
         let selfNode = this;
-        this.node.libp2p.on('peer:connect', async (peer) =>  {
-        console.log(JSON.stringify(peer));
-        console.log('peer connected event at node ',selfNode.id,"!");
+        this.node.libp2p.on('peer:connect', async (peer) => {
+            // await selfNode.node.swarm.connect(peer.multiaddrs._multiaddrs[0]+'/ipfs/'+peer.id.id);
             let swarm_peers = await selfNode.GetConnectedPeers();
+            console.log('swarm peers ',JSON.stringify(swarm_peers))
             if (swarm_peers.length > 1) {
                 let message = JSON.stringify({
                     id: selfNode.id,
                     status: 'new_node_repo_addr',
                     folders: selfNode.config.folders
                 });
-                await new Promise(resolve => setTimeout(resolve, 3000)); // 3 sec
-                let topic_peers = await selfNode.node.pubsub.peers(general_topic);
-                console.log('general topic peers ', topic_peers.length);
-                await selfNode.node.pubsub.publish(general_topic, message);
-                console.log(selfNode.id, ' sent message', message);
+                setTimeout(async function (){
+                    let topic_peers = await selfNode.node.pubsub.peers(general_topic);
+                    console.log('general topic peers ', JSON.stringify(topic_peers));
+                    if (topic_peers.length > 0) {
+                        await selfNode.node.pubsub.publish(general_topic, Buffer.from(message), (err) => {
+                            if (err) {
+                                console.error('error publishing: ', err)
+                            } else {
+                                console.log('successfully published message')
+                            }
+                        });
+                        console.log(selfNode.id, ' sent message', message);
+                    }
+
+
+                },3000)
+
             }
         });
         return this;
@@ -181,8 +196,8 @@ class IpfsSystem {
 
         for await (const file of await this.node.files.write(
             path,
-           file_contents,{create:true})) {
-            console.log('added file ',JSON.stringify(file));
+            file_contents, {create: true})) {
+            console.log('added file ', JSON.stringify(file));
             return file;
         }
 
@@ -199,7 +214,7 @@ class IpfsSystem {
         //create folder
         try {
             if (parentString === '') {
-                await this.node.files.mkdir('/' + folderName, {parents:true});
+                await this.node.files.mkdir('/' + folderName, {parents: true});
             } else {
                 await this.node.files.mkdir(parentString + '/' + folderName);
             }
@@ -214,17 +229,17 @@ class IpfsSystem {
             }
             //listing all files using forEach
             // console.log('listing all files from folder ',folderName);
-            files.forEach( async function (file) {
+            files.forEach(async function (file) {
                 // Do whatever you want to do with the file
                 let fileStat = fs.lstatSync(pathString + '/' + file);
                 if (fileStat.isFile()) {
                     console.log(file, ' is a file');
-                    fs.readFileSync(pathString + '/' + file, async(err, data) => {
+                    fs.readFileSync(pathString + '/' + file, async (err, data) => {
                         if (err) {
                             console.error(err);
                             return
                         }
-                        await self.AddFile( parentString+'/'+folderName+ '/' + file, data);
+                        await self.AddFile(parentString + '/' + folderName + '/' + file, data);
                         // console.log('contents for file ',file,' is ',data);
                     })
                 } else {
@@ -233,11 +248,11 @@ class IpfsSystem {
                 }
             });
         });
-        if(parentString === '') {
+        if (parentString === '') {
             //this is the initial call
             let res = await this.node.files.stat('/' + folderName);
             let pub_res = await this.node.name.publish(res.cid.toString());
-            console.log('folder ',folderName,' published at ',pub_res.name);
+            console.log('folder ', folderName, ' published at ', pub_res.name);
         }
     }
 
@@ -247,6 +262,7 @@ class IpfsSystem {
             return file;
         }
     }
+
     async GetFolderInfo(path) {
 
         for await (const file of await this.node.get(path)) {
@@ -259,21 +275,21 @@ class IpfsSystem {
         let repoPath = this.repoInfo;
         let result = null;
         let stat;
-        try{
-        stat = await peer.files.stat(folder_path);
-        }
-        catch (e) {
-            
+        try {
+            stat = await peer.files.stat(folder_path);
+        } catch (e) {
+
         }
         try {
-            if(stat === undefined) {
+            if (stat === undefined) {
                 await peer.files.mkdir(folder_path);
             }
         } catch (e) {
             console.log('Error publishing', e.toString());
         }
+
         result = await peer.files.stat(folder_path);
-        console.log('main folder address', result.cid.toString());
+        // console.log('main folder address', result.cid.toString());
         try {
             let pub_result = await this.node.name.publish(result.cid.toString());
             this.config.main_folder_addr = pub_result.name;
@@ -281,7 +297,7 @@ class IpfsSystem {
             console.log('Error name publishing', e.toString());
         }
 
-        helpers.UpdateConfig(repoPath,this);
+        helpers.UpdateConfig(repoPath, this);
 
     }
 
@@ -320,11 +336,11 @@ class IpfsSystem {
             console.log('Added file:', file);
 
             try {
-                let value = '/ipfs/'+file.cid.toString();
+                let value = '/ipfs/' + file.cid.toString();
                 // await this.node.publish(value);
                 console.log(value);
                 let pub_res = await self.node.name.publish(value);
-                console.log(' result for publishing',pub_res);
+                console.log(' result for publishing', pub_res);
             } catch (e) {
                 console.log('name publish error:', e.toString());
             }
@@ -335,11 +351,11 @@ class IpfsSystem {
 
     async PublishFile(cidHash) {
 
-        let value = '/ipfs/'+cidHash.toString();
+        let value = '/ipfs/' + cidHash.toString();
         try {
-        let pub_res = await this.node.name.publish(value);
-        console.log(pub_res.name);
-        return pub_res.name;
+            let pub_res = await this.node.name.publish(value);
+            console.log(pub_res.name);
+            return pub_res.name;
         } catch (e) {
             console.log('name publish error:', e.toString());
             return null;
@@ -350,21 +366,20 @@ class IpfsSystem {
     /*this function will store a registry consisting of a folder name and an ipns name*/
     async StoreFolderName(ipnsName, folderName) {
         this.config.folders.push({
-            folderName:folderName,
-            ipnsName:ipnsName
+            folderName: folderName,
+            ipnsName: ipnsName
         });
-        helpers.UpdateConfig(this.repoInfo,this);
+        helpers.UpdateConfig(this.repoInfo, this);
     }
 
 
     /*this function will return the ipns name for a folder or null of folder is not stored*/
-    async RetrieveFolder( folderName) {
+    async RetrieveFolder(folderName) {
 
         let index = self.other_nodes.findIndex(i => i.folderName === folderName);
-        if(index !== -1) {
-        return this.config.folders[index].ipnsName;
-        }
-        else {
+        if (index !== -1) {
+            return this.config.folders[index].ipnsName;
+        } else {
             return null;
         }
     }
@@ -373,25 +388,26 @@ class IpfsSystem {
         let result = [];
         for await (const folder of await this.node.files.ls('/')) {
 
-            if(folder.type == 'folder') {
+            if (folder.type == 'folder') {
                 let publish_res = await this.node.name.publish(folder.cid.toString());
                 result.push({
-                    folderName:folder.name,
-                    ipnsName:publish_res.name 
+                    folderName: folder.name,
+                    ipnsName: publish_res.name
                 });
             }
         }
 
     }
-    async  subscribeOnTopic(topic) {
-        const { spawn } = require("child_process");
+
+    async subscribeOnTopic(topic) {
+        const {spawn} = require("child_process");
 
         const child = spawn('ipfs pubsub sub', [topic], {shell: true});
         child.stdout.on("data", data => {
 
             let content = JSON.parse(data);
 
-            switch(content.title) {
+            switch (content.title) {
                 case 'information':
                     //we have new information so we need to store it
                     break;
@@ -419,18 +435,19 @@ class IpfsSystem {
         });
     }
 
-  StorePeerInfo(info) {
+    StorePeerInfo(info) {
         this.config.peerInfo.push(info);
-        helpers.UpdateConfig(this.repoInfo,this);
-  }
-  GeneratePeerInfo() {
+        helpers.UpdateConfig(this.repoInfo, this);
+    }
+
+    GeneratePeerInfo() {
         this.config = helpers.ReadConfigFile(this.repoInfo);
 
         let peer_info = {};
         peer_info.id = this.id;
         peer_info.folders = this.config.folders;
 
-  }
+    }
 }
 
 module.exports = IpfsSystem;
