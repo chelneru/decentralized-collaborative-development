@@ -12,29 +12,30 @@ exports.InitializeConfig = (repoPath, node, name, email) => {
 
     try {
         if (fs.existsSync(repoPath + '/config.json')) {
-            //file exists
-            return JSON.parse(fs.readFileSync(repoPath + '/config.json'));
+            return JSON.parse(fs.readFileSync(repoPath + '/config.json').toString());
+        }
+        else {
+            let config = {};
+            name = 'Alin'; //TODO add on register to retrieve name
+            email = 'alin.panainte95@gmail.com'; //TODO add on register to retrieve email
+            config.name = name;
+            config.email = email;
+            config.created_at = moment().format();
+            config.auth_token = null;
+            config.public_hash = null;
+            config.main_folder_addr = null;
+            config.git_module_addr = null;
+            node.config = config;
+            fs.writeFile(repoPath + '/config.json', JSON.stringify(config), function (err) {
+                if (err) {
+                    return console.log('Error creating ', repoPath + '/config.json', ':', err);
+                }
+            });
+            return config;
         }
     } catch (err) {
-        console.log('config file does not exist. Will create a new one.', err);
-        let config = {};
-        name = 'Alin'; //TODO add on register to retrieve name
-        email = 'alin.panainte95@gmail.com'; //TODO add on register to retrieve email
-        // config.name = this.GetInput("Insert the name:\n");
-        config.name = name;
-        config.email = email;
-        config.created_at = moment().format();
-        config.auth_token = null;
-        config.public_hash = null;
-        config.main_folder_addr = null;
-        config.git_module_addr = null;
-        node.config = config;
-        fs.writeFile(repoPath + '/config.json', JSON.stringify(config), function (err) {
-            if (err) {
-                return console.log('Error creating ', repoPath + '/config.json', ':', err);
-            }
-        });
-        return config;
+        console.log('Error checking config file: ', err);
+
     }
 
 };
@@ -45,20 +46,21 @@ exports.InitializeNodeInfo = async (repoPath, node) => {
     try {
         if (fs.existsSync(repoPath + '/nodeinfo')) {
             //file exists so we return it instead
-            console.log('node info file ' + repoPath + '/nodeinfo' + ' exists.');
             let data = fs.readFileSync(repoPath + '/nodeinfo');
-
             return JSON.parse(data.toString());
         }
+        else {
+            let other_nodes = [];
+            fs.writeFile(repoPath + '/nodeinfo', JSON.stringify(other_nodes), function (err) {
+                if (err) {
+                    console.log('Error creating ', repoPath + '/nodeinfo', ':', err);
+                }
+            });
+            return other_nodes;
+        }
     } catch (err) {
-        console.log('node info file does not exist. Will create a new one ' + repoPath + '/nodeinfo');
-        let other_nodes = [];
-        fs.writeFile(repoPath + '/nodeinfo', JSON.stringify(other_nodes), function (err) {
-            if (err) {
-                return console.log('Error creating ', repoPath + '/nodeinfo', ':', err);
-            }
-        });
-        return other_nodes;
+        console.log('Error checking file ' + repoPath + '/nodeinfo : ',err);
+
     }
 };
 exports.UpdateOtherNodeInfo = async (nodeInfo, repoPath, node) => {
@@ -70,8 +72,14 @@ exports.UpdateOtherNodeInfo = async (nodeInfo, repoPath, node) => {
                 nodeInfo.forEach(function (element) {
                     let index = node.other_nodes.findIndex(i => i.id === element.id);
                     if (index !== -1) {
+                        element.other_nodes[index].updatedAt = moment().format('MM DD YYYY, h:mm:ss a');
+                        element.createdAt = node.other_nodes[index].created_at;
                         node.other_nodes[index] = element;
+                        node.other_nodes[index].updatedAt = moment().format('MM DD YYYY, h:mm:ss a');
                     } else {
+                        element.createdAt = moment().format('MM DD YYYY, h:mm:ss a');
+                        element.updatedAt = moment().format('MM DD YYYY, h:mm:ss a');
+
                         node.other_nodes.push(element);
 
                     }
@@ -79,9 +87,15 @@ exports.UpdateOtherNodeInfo = async (nodeInfo, repoPath, node) => {
             } else {
                 let index = node.other_nodes.findIndex(i => i.id === nodeInfo.id);
 
-                if (index !== -1) {
+                if (
+                    index !== -1) {
+                    nodeInfo.updatedAt = moment().format('MM DD YYYY, h:mm:ss a'); // 04 16th 2020, 3:07:31 pm
                     node.other_nodes[index] = nodeInfo;
+
                 } else {
+                    nodeInfo.createdAt = moment().format('MM DD YYYY, h:mm:ss a'); // 04 16th 2020, 3:07:31 pm
+                    nodeInfo.updatedAt = moment().format('MM DD YYYY, h:mm:ss a'); // 04 16th 2020, 3:07:31 pm
+
                     node.other_nodes.push(nodeInfo);
 
                 }

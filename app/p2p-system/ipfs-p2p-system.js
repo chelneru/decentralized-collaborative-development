@@ -7,6 +7,7 @@ const path = require('path');
 const Protector = require('libp2p/src/pnet');
 const ipfsClient = require('ipfs-http-client');
 const os = require('os');
+const moment = require('moment');
 
 const delay = require('delay');
 const general_topic = 'peer-general';
@@ -98,6 +99,8 @@ class IpfsSystem {
                         //reply with self info
                         let message = JSON.stringify({
                             id: self.id,
+                            name: self.config.name,
+                            email: self.config.email,
                             status: 'response_new_node_repo_addr',
                             repo_addr: self.folders
                         });
@@ -144,21 +147,21 @@ class IpfsSystem {
             this.config = await helpers.InitializeConfig(this.repoInfo, this);
         }
         this.other_nodes = await helpers.InitializeNodeInfo(this.repoInfo, this);
-        console.log('ndeinfo file:', this.other_nodes);
-        this.config.main_folder_addr = "not published yet";
         this.config.folders = await this.node.files.ls('/');
         if (helpers.isEmptyObject(this.config.folders)) {
             this.config.folders = [];
         }
-        await this.PublishMainFolder();
+        await this.CreateMainFolder();
         let selfNode = this;
         this.node.libp2p.on('peer:connect', async (peer) => {
             // await selfNode.node.swarm.connect(peer.multiaddrs._multiaddrs[0]+'/ipfs/'+peer.id.id);
             let swarm_peers = await selfNode.GetConnectedPeers();
-            console.log('swarm peers ', JSON.stringify(swarm_peers))
+            console.log('swarm peers ', JSON.stringify(swarm_peers));
             if (swarm_peers.length > 0) {
                 let message = JSON.stringify({
                     id: selfNode.id,
+                    name: selfNode.config.name,
+                    email: selfNode.config.email,
                     status: 'new_node_repo_addr',
                     folders: selfNode.config.folders
                 });
@@ -208,6 +211,12 @@ class IpfsSystem {
 
     async AddFolder(pathString, parentString) {
         let self = this;
+        let watcher = fs.watch(pathString);
+        // track changes
+        watcher.on('change', function name(event, filename) {
+            self.UpdateFolder(pathString);
+        });
+
         let folderStat = fs.lstatSync(pathString);
         let folderName = path.basename(pathString);
         console.log('creating folder ', folderName);
@@ -273,37 +282,51 @@ class IpfsSystem {
         }
     }
 
-    async PublishMainFolder() {
-        let peer = this.node;
+    async CreateMainFolder() {
         let repoPath = this.repoInfo;
-        let result = null;
-        let stat;
+        let self = this;
         try {
-            stat = await peer.files.stat(folder_path);
-        } catch (e) {
+            //first we check locally
+            if (fs.existsSync(repoPath + '/MainFolder')) {
+                //now we check if we have it on IPFS
+                let index = this.config.folders.findIndex(i => i.folderName === 'MainFolder');
+                if(index === -1) {
+                    //folder exists locally but its not in the node config
+                    for await (const ipfs_add_res of  await self.node.add(repoPath + '/MainFolder')) {
+                        let publish_res = await self.node.name.publish(ipfs_add_res.cid.toString());
+                        self.config.main_folder_addr = publish_res.name;
+                        await self.StoreFolderName(self.config.main_folder_addr, 'MainFolder', false);
+                        await helpers.UpdateConfig(repoPath, self);
+                    }
 
-        }
-        try {
-            if (stat === undefined) {
-                await peer.files.mkdir(folder_path);
+                }
+            } else {
+                try {
+                    fs.mkdir(repoPath + '/MainFolder', async function (err) {
+                        if (err) {
+                            console.log('Error creating ', repoPath + '/MainFolder :', err);
+                        } else {
+                            console.log('folder created.');
+
+                            // folder has been created. We can publish it.
+                            console.log('publishing folder....');
+
+                            for await (const ipfs_add_res of  await self.node.add(repoPath + '/MainFolder')) {
+                                let publish_res = await self.node.name.publish(ipfs_add_res.cid.toString());
+                                self.config.main_folder_addr = publish_res.name;
+                                await self.StoreFolderName(self.config.main_folder_addr, 'MainFolder', false);
+                                await helpers.UpdateConfig(repoPath, self);
+                            }
+                        }
+                    });
+                } catch (err) {
+                    console.log('Error adding/publishing main folder: ', err.toString());
+                }
             }
-        } catch (e) {
-            console.log('Error publishing', e.toString());
+        } catch (err) {
+            //main folder does not exist. Create it
+            console.log('Error checking main folder: ', err.toString(),err.stack().toString);
         }
-
-        result = await peer.files.stat(folder_path);
-        // console.log('main folder address', result.cid.toString());
-        try {
-            let pub_result = await this.node.name.publish(result.cid.toString());
-            this.config.main_folder_addr = pub_result.name;
-            this.StoreFolderName(this.config.main_folder_addr, 'MainFolder');
-
-        } catch (e) {
-            console.log('Error name publishing', e.toString());
-        }
-
-        await helpers.UpdateConfig(repoPath, this);
-
     }
 
 
@@ -369,12 +392,35 @@ class IpfsSystem {
     }
 
     /*this function will store a registry consisting of a folder name and an ipns name*/
-    async StoreFolderName(ipnsName, folderName) {
+    async StoreFolderName(ipnsName, folderName, isChanged, localPath) {
         this.config.folders.push({
             folderName: folderName,
-            ipnsName: ipnsName
+            ipnsName: ipnsName,
+            localPath: localPath,
+            isChanged: isChanged,
+            mDate: moment.now()
         });
         await helpers.UpdateConfig(this.repoInfo, this);
+    }
+
+    async UpdateFolder(folderPath) {
+        let folderName = path.basename(folderPath);
+
+        let result = await this.node.files.stat(folderPath);
+        if (result.hasOwnProperty('cid')) {
+            try {
+                let pub_result = await this.node.name.publish(result.cid.toString());
+                let index = this.config.folders.findIndex(i => i.folderName === folderName);
+                if (index !== -1) {
+                    this.config.folders[index].ipnsName = pub_result.name;
+                    this.config.folders[index].isChanged = true;
+                    this.config.folders[index].mDate = moment.now();
+                }
+            } catch (err) {
+                console.log('Error publishing ', err.toString());
+            }
+        }
+
     }
 
 
@@ -386,6 +432,19 @@ class IpfsSystem {
             return this.config.folders[index].ipnsName;
         } else {
             return null;
+        }
+    }
+
+    InitiateFolderWatchers() {
+        let self = this;
+        for (let folderIter = 0; folderIter < this.config.folders.length; folderIter++) {
+            let watcher = fs.watch(this.config.folders[folderIter].localPath);
+            let folderName = this.config.folders[folderIter].folderName;
+            // track changes
+            let localPath = this.config.folders[folderIter].localPath;
+            watcher.on('change', function name(event, filename) {
+                self.UpdateFolder(localPath);
+            });
         }
     }
 
