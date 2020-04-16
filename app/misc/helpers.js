@@ -57,7 +57,6 @@ exports.InitializeNodeInfo = async (repoPath, node) => {
     } catch (err) {
         // console.log('node info file does not exist. Will create a new one.');
         let other_nodes = [];
-
         await fs.writeFile(repoPath + '/nodeinfo', JSON.stringify(other_nodes), function (err) {
             if (err) {
                 return console.log('Error creating ', repoPath + '/nodeinfo', ':', err);

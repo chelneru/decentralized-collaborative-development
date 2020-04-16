@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const Protector = require('libp2p/src/pnet');
 const ipfsClient = require('ipfs-http-client');
-import os from 'os';
+const os = require('os');
 
 const delay = require('delay');
 const general_topic = 'peer-general';
@@ -152,29 +152,25 @@ class IpfsSystem {
         this.node.libp2p.on('peer:connect', async (peer) => {
             // await selfNode.node.swarm.connect(peer.multiaddrs._multiaddrs[0]+'/ipfs/'+peer.id.id);
             let swarm_peers = await selfNode.GetConnectedPeers();
-            console.log('swarm peers ',JSON.stringify(swarm_peers))
-            if (swarm_peers.length > 1) {
+            console.log('swarm peers ', JSON.stringify(swarm_peers));
+            if (swarm_peers.length > 0) {
                 let message = JSON.stringify({
                     id: selfNode.id,
                     status: 'new_node_repo_addr',
                     folders: selfNode.config.folders
                 });
-                setTimeout(async function (){
-                    let topic_peers = await selfNode.node.pubsub.peers(general_topic);
-                    console.log('general topic peers ', JSON.stringify(topic_peers));
-                    if (topic_peers.length > 0) {
-                        await selfNode.node.pubsub.publish(general_topic, Buffer.from(message), (err) => {
-                            if (err) {
-                                console.error('error publishing: ', err)
-                            } else {
-                                console.log('successfully published message')
-                            }
-                        });
-                        console.log(selfNode.id, ' sent message', message);
-                    }
-
-
-                },3000)
+                let topic_peers = await selfNode.node.pubsub.peers(general_topic);
+                console.log('general topic peers ', JSON.stringify(topic_peers));
+                if (topic_peers.length > 0) {
+                    await selfNode.node.pubsub.publish(general_topic, Buffer.from(message), (err) => {
+                        if (err) {
+                            console.error('error publishing: ', err)
+                        } else {
+                            console.log('successfully published message')
+                        }
+                    });
+                    console.log(selfNode.id, ' sent message', message);
+                }
 
             }
         });
