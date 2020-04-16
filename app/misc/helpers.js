@@ -8,16 +8,15 @@ exports.GetInput = (message) => {
     return readline.question(message);
 };
 
-exports.InitializeConfig = async (repoPath, node, name, email) => {
+exports.InitializeConfig =  (repoPath, node, name, email) => {
 
     try {
-        if (await fs.exists(repoPath + '/config.json')) {
+        if (fs.existsSync(repoPath + '/config.json')) {
             //file exists
-            log('config file already exists. Will not create a new one.');
-            return null;
+            return JSON.parse(fs.readFileSync(repoPath + '/config.json'));
         }
     } catch (err) {
-        console.log('config file does not exist. Will create a new one.');
+        console.log('config file does not exist. Will create a new one.',err);
         let config = {};
         name = 'Alin'; //TODO add on register to retrieve name
         email = 'alin.panainte95@gmail.com'; //TODO add on register to retrieve email
