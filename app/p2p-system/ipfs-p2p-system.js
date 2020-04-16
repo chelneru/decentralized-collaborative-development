@@ -87,7 +87,7 @@ class IpfsSystem {
             let res = JSON.parse(msg.data.toString());
             //ignore message from self
             if (msg.from !== self.id) {
-                console.log('received message: ', msg);
+                console.log('received message: ', res);
                 switch (res.status) {
                     case 'new_node_repo_addr':
                         console.log('received new node ', res.id, ' need to respond.');
@@ -144,33 +144,40 @@ class IpfsSystem {
             this.config = await helpers.InitializeConfig(this.repoInfo, this);
         }
         this.other_nodes = await helpers.InitializeNodeInfo(this.repoInfo, this);
+        console.log('ndeinfo file:', this.other_nodes);
         this.config.main_folder_addr = "not published yet";
         this.config.folders = await this.node.files.ls('/');
-
+        if (helpers.isEmptyObject(this.config.folders)) {
+            this.config.folders = [];
+        }
         await this.PublishMainFolder();
         let selfNode = this;
         this.node.libp2p.on('peer:connect', async (peer) => {
             // await selfNode.node.swarm.connect(peer.multiaddrs._multiaddrs[0]+'/ipfs/'+peer.id.id);
             let swarm_peers = await selfNode.GetConnectedPeers();
-            console.log('swarm peers ', JSON.stringify(swarm_peers));
+            console.log('swarm peers ', JSON.stringify(swarm_peers))
             if (swarm_peers.length > 0) {
                 let message = JSON.stringify({
                     id: selfNode.id,
                     status: 'new_node_repo_addr',
                     folders: selfNode.config.folders
                 });
-                let topic_peers = await selfNode.node.pubsub.peers(general_topic);
-                console.log('general topic peers ', JSON.stringify(topic_peers));
-                if (topic_peers.length > 0) {
-                    await selfNode.node.pubsub.publish(general_topic, Buffer.from(message), (err) => {
-                        if (err) {
-                            console.error('error publishing: ', err)
-                        } else {
-                            console.log('successfully published message')
-                        }
-                    });
-                    console.log(selfNode.id, ' sent message', message);
-                }
+                setTimeout(async function () {
+                    let topic_peers = await selfNode.node.pubsub.peers(general_topic);
+                    console.log('general topic peers ', JSON.stringify(topic_peers));
+                    if (topic_peers.length > 0) {
+                        await selfNode.node.pubsub.publish(general_topic, Buffer.from(message), (err) => {
+                            if (err) {
+                                console.error('error publishing: ', err)
+                            } else {
+                                console.log('successfully published message')
+                            }
+                        });
+                        console.log(selfNode.id, ' sent message', message);
+                    }
+
+
+                }, 3000)
 
             }
         });
@@ -289,11 +296,13 @@ class IpfsSystem {
         try {
             let pub_result = await this.node.name.publish(result.cid.toString());
             this.config.main_folder_addr = pub_result.name;
+            this.StoreFolderName(this.config.main_folder_addr, 'MainFolder');
+
         } catch (e) {
             console.log('Error name publishing', e.toString());
         }
 
-        helpers.UpdateConfig(repoPath, this);
+        await helpers.UpdateConfig(repoPath, this);
 
     }
 
@@ -365,7 +374,7 @@ class IpfsSystem {
             folderName: folderName,
             ipnsName: ipnsName
         });
-        helpers.UpdateConfig(this.repoInfo, this);
+        await helpers.UpdateConfig(this.repoInfo, this);
     }
 
 

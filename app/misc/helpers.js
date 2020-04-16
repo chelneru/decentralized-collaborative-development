@@ -8,7 +8,7 @@ exports.GetInput = (message) => {
     return readline.question(message);
 };
 
-exports.InitializeConfig =  (repoPath, node, name, email) => {
+exports.InitializeConfig = (repoPath, node, name, email) => {
 
     try {
         if (fs.existsSync(repoPath + '/config.json')) {
@@ -16,7 +16,7 @@ exports.InitializeConfig =  (repoPath, node, name, email) => {
             return JSON.parse(fs.readFileSync(repoPath + '/config.json'));
         }
     } catch (err) {
-        console.log('config file does not exist. Will create a new one.',err);
+        console.log('config file does not exist. Will create a new one.', err);
         let config = {};
         name = 'Alin'; //TODO add on register to retrieve name
         email = 'alin.panainte95@gmail.com'; //TODO add on register to retrieve email
@@ -31,7 +31,7 @@ exports.InitializeConfig =  (repoPath, node, name, email) => {
         node.config = config;
         fs.writeFile(repoPath + '/config.json', JSON.stringify(config), function (err) {
             if (err) {
-                return console.log('Error creating ', repoPath + '/nodeinfo', ':', err);
+                return console.log('Error creating ', repoPath + '/config.json', ':', err);
             }
         });
         return config;
@@ -43,21 +43,17 @@ exports.InitializeConfig =  (repoPath, node, name, email) => {
 * */
 exports.InitializeNodeInfo = async (repoPath, node) => {
     try {
-        if (await fs.exists(repoPath + '/nodeinfo')) {
+        if (fs.existsSync(repoPath + '/nodeinfo')) {
             //file exists so we return it instead
-            // console.log('node info file exists.');
-            fs.readFile(repoPath + '/nodeinfo', function read(err, data) {
-                if (err) {
-                    throw err;
-                }
-                const content = data.toString();
-                return JSON.parse(content);
-            });
+            console.log('node info file ' + repoPath + '/nodeinfo' + ' exists.');
+            let data = fs.readFileSync(repoPath + '/nodeinfo');
+
+            return JSON.parse(data.toString());
         }
     } catch (err) {
-        // console.log('node info file does not exist. Will create a new one.');
+        console.log('node info file does not exist. Will create a new one ' + repoPath + '/nodeinfo');
         let other_nodes = [];
-        await fs.writeFile(repoPath + '/nodeinfo', JSON.stringify(other_nodes), function (err) {
+        fs.writeFile(repoPath + '/nodeinfo', JSON.stringify(other_nodes), function (err) {
             if (err) {
                 return console.log('Error creating ', repoPath + '/nodeinfo', ':', err);
             }
@@ -67,12 +63,12 @@ exports.InitializeNodeInfo = async (repoPath, node) => {
 };
 exports.UpdateOtherNodeInfo = async (nodeInfo, repoPath, node) => {
     try {
-        console.log('updating nodeinfo file. at repopath: ',repoPath);
-        if (await fs.exists(repoPath + '/nodeinfo')) {
+        console.log('updating nodeinfo file. at repopath: ', repoPath);
+        if (fs.existsSync(repoPath + '/nodeinfo')) {
             //file exists
             if (Array.isArray(nodeInfo)) {
                 nodeInfo.forEach(function (element) {
-                    let index = self.other_nodes.findIndex(i => i.id === element.id);
+                    let index = node.other_nodes.findIndex(i => i.id === element.id);
                     if (index !== -1) {
                         node.other_nodes[index] = element;
                     } else {
@@ -81,7 +77,7 @@ exports.UpdateOtherNodeInfo = async (nodeInfo, repoPath, node) => {
                     }
                 });
             } else {
-                let index = self.other_nodes.findIndex(i => i.id === nodeInfo.id);
+                let index = node.other_nodes.findIndex(i => i.id === nodeInfo.id);
 
                 if (index !== -1) {
                     node.other_nodes[index] = nodeInfo;
@@ -97,7 +93,7 @@ exports.UpdateOtherNodeInfo = async (nodeInfo, repoPath, node) => {
             });
         }
     } catch (err) {
-        console.log('node info file does not exist. Cannot add other node info.');
+        console.log('node info file ' + repoPath + '/nodeinfo' + ' does not exist. Cannot add other node info: ' + err);
     }
     return node.other_nodes;
 
@@ -112,14 +108,25 @@ exports.StoreTokens = (tokenType, accessToken, refreshToken, repoPath, node) => 
 };
 
 exports.UpdateConfig = async (repoPath, node) => {
+
     if (node.config !== undefined) {
         fs.writeFile(repoPath + '/config.json', JSON.stringify(node.config), function (err) {
             if (err) {
-                return console.log(err);
+                return console.log('Error updating config file:', err);
             }
         });
     }
+
 };
+exports.isEmptyObject = function (obj) {
+    for (var prop in obj) {
+        if (obj.hasOwnProperty(prop)) {
+            return false;
+        }
+    }
+
+    return JSON.stringify(obj) === JSON.stringify({});
+}
 exports.ReadConfigFile = (repoPath) => {
 
     try {
