@@ -63,9 +63,22 @@ exports.InitializeNodeInfo = async (repoPath, node) => {
 
     }
 };
+
+exports.UpdateNodeInfoFile = async ( repoPath, node) => {
+    try {
+        if (fs.existsSync(repoPath + '/nodeinfo')) {
+            fs.writeFile(repoPath + '/nodeinfo', JSON.stringify(node.other_nodes), function (err) {
+                if (err) {
+                    console.log('unable to update nodeinfo file: ' + err);
+                }
+            });
+        }
+    } catch (err) {
+        console.log('unable to update nodeinfo file: ' + err);
+    }
+};
 exports.UpdateOtherNodeInfo = async (nodeInfo, repoPath, node) => {
     try {
-        console.log('updating nodeinfo file. at repopath: ', repoPath);
         if (fs.existsSync(repoPath + '/nodeinfo')) {
             //file exists
             if (Array.isArray(nodeInfo)) {

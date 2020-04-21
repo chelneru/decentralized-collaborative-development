@@ -94,6 +94,8 @@ class IpfsSystem {
                         console.log('received new node ', res.id, ' need to respond.');
                         self.other_nodes = await helpers.UpdateOtherNodeInfo({
                             id: res.id,
+                            name:res.name,
+                            email:res.email,
                             folders: res.folders
                         }, self.repoInfo, self);
                         //reply with self info
@@ -102,7 +104,7 @@ class IpfsSystem {
                             name: self.config.name,
                             email: self.config.email,
                             status: 'response_new_node_repo_addr',
-                            repo_addr: self.folders
+                            repo_addr: self.config.folders
                         });
                         await self.node.pubsub.publish(general_topic, Buffer.from(message), (err) => {
                             if (err) {
@@ -116,12 +118,21 @@ class IpfsSystem {
                         console.log('received new node ', res.id, ', no need to respond.');
                         self.other_nodes = await helpers.UpdateOtherNodeInfo({
                             id: res.id,
+                            name:res.name,
+                            email:res.email,
                             folders: res.folders
                         }, self.repoInfo, self);
                         break;
                     case 'remove_node_repo_addr':
                         console.log('removed node node ');
                         //TODO
+                        break;
+                    case 'announce_folder':
+                        console.log('received folder announce');
+                        let nodeIndex = self.other_nodes.findIndex(i => i.id === res.id);
+                        let folderIndex = self.other_nodes[nodeIndex].folders.findIndex(i => i.folderName === res.folderName);
+                        self.other_nodes[nodeIndex].folders[folderIndex].ipnsName = res.newIpns;
+                        helpers.UpdateNodeInfoFile(self.repoInfo,self);
                         break;
                 }
             } else {
@@ -391,6 +402,20 @@ class IpfsSystem {
 
     }
 
+    async AnnounceFolder(newIpns, folderName) {
+        let message = JSON.stringify({
+            id: self.id,
+            folderName: folderName,
+            newIpns: newIpns,
+            status: 'announce_folder',
+        });
+        await self.node.pubsub.publish(general_topic, Buffer.from(message), (err) => {
+            if (err) {
+                throw err;
+            }
+
+        });
+    }
     /*this function will store a registry consisting of a folder name and an ipns name*/
     async StoreFolderName(ipnsName, folderName, isChanged, localPath) {
         this.config.folders.push({
@@ -415,9 +440,11 @@ class IpfsSystem {
                     this.config.folders[index].ipnsName = pub_result.name;
                     this.config.folders[index].isChanged = true;
                     this.config.folders[index].mDate = moment.now();
+                    return pub_result.name;
                 }
             } catch (err) {
                 console.log('Error publishing ', err.toString());
+                return null;
             }
         }
 

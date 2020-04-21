@@ -1,14 +1,33 @@
-.node-info {
-    width: 50%;
+.component {
+    width: 49%;
+    display: inline-block;
     border: 1px solid black;
+    padding-left: 15px;
+}
+.main-component {
+    border: 1px solid black;
+    padding-left: 15px;
+}
+.main-component > .line {
+    border-bottom: 1px solid #eeeeee;
+    margin-bottom: 10px;
+
 }
 
-.row .row-label {
+ .row-label {
     display: inline-block;
-    width: 19%;
+    width: 10%;
+    vertical-align: top;
 }
-.row .row-value {
+.row-value {
     display: inline-block;
     width: 50%;
 
+}
+.folder-row div:not(:first-child) {
+    display: inline-block;
+    margin-right: 30px;
+}
+.folder-row:not(:first-child) .row-label  {
+    visibility: hidden;
 }
