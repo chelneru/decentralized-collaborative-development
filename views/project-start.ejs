@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Home Page</title>
+
+    <link rel="stylesheet" type="text/css" href="/stylesheets/user-auth-style.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+          integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+
+
+</head>
+
+<body>
+<div class="container container-fluid">
+    <button type="button" class="btn btn-info register-button">Join a project</button>
+    <button type="button" class="btn btn-info login-button">Create a new project</button>
+
+    <div class="join-proj-tab">
+        <form id="join_proj_form" method="POST" action="/join_project">
+            <div class="form-group">
+                <label for="swarm_key">Project Swarm Key content</label>
+                <textarea class="form-control" name="swarm_key_content" id="swarm_key" rows="4"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="bootsrapNodes">Bootstrap nodes</label>
+                <textarea class="form-control" name="bootstrap_nodes" id="bootsrapNodes" rows="4"></textarea>
+            </div>
+            <button type="submit" class="btn btn-info join-project-btn">Join project</button>
+        </form>
+    </div>
+    <div class="create-proj-tab">
+        <form id="register_form" method="POST" action="/create_project">
+
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" placeholder="project_name" aria-label="Project Name"
+                       aria-describedby="basic-addon1">
+            </div>
+
+            <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" id="customCheck1" name="git_ext">
+                <label class="custom-control-label" for="customCheck1">Include git extension</label>
+            </div>
+
+            <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" id="customCheck2" name="message_ext">
+                <label class="custom-control-label" for="customCheck2">Include messaging(Matrix) extension</label>
+            </div>
+
+            <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" id="customCheck3" name="bug_ext">
+                <label class="custom-control-label" for="customCheck3">Include issue tracking(git-bug) extension</label>
+            </div>
+
+
+            <button type="submit" class="btn btn-info create-project-btn">Create project</button>
+
+        </form>
+    </div>
+    <div class="register-tab"></div>
+</div>
+</body>
+<script
+        src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+        integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+        crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+        integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+        crossorigin="anonymous"></script>
+<script src="/javascripts/user-auth.js"></script>
+
+</html>

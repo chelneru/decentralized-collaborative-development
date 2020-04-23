@@ -24,13 +24,14 @@ router.post('/info', async (req, res) => {
 router.post('/folder-announce', async (req, res) => {
 
     let ipfsNode = global.node;
-    let index = this.config.folders.findIndex(i => i.folderName === res.folderName && i.ipnsName === res.ipnsName);
+    console.log(ipfsNode.config.folders,req.body.folderName,req.body.ipnsName);
+    let index = ipfsNode.config.folders.findIndex(i => i.folderName === req.body.folderName && i.ipnsName === req.body.ipnsName);
 
     if (index !== -1) {
         let folderLocalPath = ipfsNode.config.folders[index].localPath;
         try {
             let newIpns = ipfsNode.UpdateFolder(folderLocalPath);
-            await ipfsNode.AnnounceFolder(newIpns, res.folderName);
+            await ipfsNode.AnnounceFolder(ipfsNode.id,newIpns, req.body.folderName);
             res.json({
                 status: true
             });

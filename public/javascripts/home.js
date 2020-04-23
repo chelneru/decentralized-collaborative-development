@@ -2,6 +2,13 @@ let peerUpdateIntervalId = null;
 
 $(document).ready(function () {
     UpdatePeerInfo();
+
+    $(document).on('click','.row-announce', function () {
+        let $row = $(this).closest('.folder-row');
+        let folderName = $($row).find('.row-name').text();
+        let ipnsName = $($row).find('.row-address').text();
+        AnnounceFolder($row, folderName, ipnsName);
+    });
 });
 
 function UpdatePeerInfo() {
@@ -36,19 +43,19 @@ function UpdatePeerInfo() {
     });
 }
 
-function AnnounceFolder($row,folderName,ipnsName) {
+function AnnounceFolder($row, folderName, ipnsName) {
     $.ajax({
         url: 'http://localhost:3000/node/folder-announce',
         type: 'POST',
         dataType: 'json',
         data: {
-            folderName:folderName,
-            ipnsName:ipnsName
+            folderName: folderName,
+            ipnsName: ipnsName
         },
         success(response) {
             if (response.status === true) {
                 $($row).find('.row-status').text('unchanged').css('color', 'green');
-                $($row).find('.row-announce').prop('disabled', true);
+                // $($row).find('.row-announce').prop('disabled', true);
             }
         }
         ,
@@ -86,13 +93,13 @@ function CreateFolderRow(folderName, folderAddr, status) {
         class: 'row-announce',
         text: 'announce'
     });
-    if(status === false ) {
-        $($status).css('color','green');
-        $($announce).prop('disabled',true);
-    }   else {
-        $($status).css('color','red');
+    if (status === false) {
+        $($status).css('color', 'green');
+        // $($announce).prop('disabled',true);
+    } else {
+        $($status).css('color', 'red');
 
     }
-    $($row).append($label,$status, $name, $addr, $announce);
+    $($row).append($label, $status, $name, $addr, $announce);
     $($row).appendTo($('.folders-line'));
 }

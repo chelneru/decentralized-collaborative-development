@@ -8,7 +8,7 @@ const Protector = require('libp2p/src/pnet');
 const ipfsClient = require('ipfs-http-client');
 const os = require('os');
 const moment = require('moment');
-
+const OrbitDB = require('orbit-db');
 const delay = require('delay');
 const general_topic = 'peer-general';
 let folder_path = '/main_folder';
@@ -67,12 +67,21 @@ class IpfsSystem {
                 connProtector: new Protector(swarm_key)
             };
         }
-        return await IPFS.create(options);
+        let ipfsInstance = await IPFS.create(options);
+
+            const orbitdb = await OrbitDB.createInstance(ipfsInstance, {path: os.homedir() + '/.jsipfs'});
+
+            return {ipfsInstance: ipfsInstance, dbInstance: orbitdb};
+
     }
+
 
     async CreateIPFSNode(options, private_network) {
         this.other_nodes = [];
-        this.node = await this.createJsClient(options, private_network);
+        let result = await this.createJsClient(options, private_network);
+        this.node = result.ipfsInstance;
+        this.db = result.dbInstance;
+
     }
 
     async initialize(options) {
@@ -94,18 +103,26 @@ class IpfsSystem {
                         console.log('received new node ', res.id, ' need to respond.');
                         self.other_nodes = await helpers.UpdateOtherNodeInfo({
                             id: res.id,
-                            name:res.name,
-                            email:res.email,
+                            name: res.name,
+                            email: res.email,
                             folders: res.folders
                         }, self.repoInfo, self);
                         //reply with self info
-                        let message = JSON.stringify({
+
+                        let sendObject = {
                             id: self.id,
                             name: self.config.name,
                             email: self.config.email,
                             status: 'response_new_node_repo_addr',
-                            repo_addr: self.config.folders
-                        });
+                            folders: self.config.folders.map(f => {
+                                return {
+                                    folderName: f.folderName,
+                                    ipnsName: f.ipnsName,
+                                    mDate: f.mDate
+                                };
+                            })
+                        };
+                        let message = JSON.stringify(sendObject);
                         await self.node.pubsub.publish(general_topic, Buffer.from(message), (err) => {
                             if (err) {
                                 console.error('error publishing: ', err)
@@ -118,8 +135,8 @@ class IpfsSystem {
                         console.log('received new node ', res.id, ', no need to respond.');
                         self.other_nodes = await helpers.UpdateOtherNodeInfo({
                             id: res.id,
-                            name:res.name,
-                            email:res.email,
+                            name: res.name,
+                            email: res.email,
                             folders: res.folders
                         }, self.repoInfo, self);
                         break;
@@ -132,7 +149,7 @@ class IpfsSystem {
                         let nodeIndex = self.other_nodes.findIndex(i => i.id === res.id);
                         let folderIndex = self.other_nodes[nodeIndex].folders.findIndex(i => i.folderName === res.folderName);
                         self.other_nodes[nodeIndex].folders[folderIndex].ipnsName = res.newIpns;
-                        helpers.UpdateNodeInfoFile(self.repoInfo,self);
+                        helpers.UpdateNodeInfoFile(self.repoInfo, self);
                         break;
                 }
             } else {
@@ -198,7 +215,8 @@ class IpfsSystem {
         return this;
     }
 
-    static async create(options, private_network) {
+    static
+    async create(options, private_network) {
         const o = new IpfsSystem();
         await o.CreateIPFSNode(options, private_network);
         await o.initialize(options);
@@ -301,12 +319,12 @@ class IpfsSystem {
             if (fs.existsSync(repoPath + '/MainFolder')) {
                 //now we check if we have it on IPFS
                 let index = this.config.folders.findIndex(i => i.folderName === 'MainFolder');
-                if(index === -1) {
+                if (index === -1) {
                     //folder exists locally but its not in the node config
-                    for await (const ipfs_add_res of  await self.node.add(repoPath + '/MainFolder')) {
+                    for await (const ipfs_add_res of await self.node.add(repoPath + '/MainFolder', {recursive: true})) {
                         let publish_res = await self.node.name.publish(ipfs_add_res.cid.toString());
                         self.config.main_folder_addr = publish_res.name;
-                        await self.StoreFolderName(self.config.main_folder_addr, 'MainFolder', false);
+                        await self.StoreFolderName(self.config.main_folder_addr, 'MainFolder', false, repoPath + '/MainFolder');
                         await helpers.UpdateConfig(repoPath, self);
                     }
 
@@ -322,10 +340,10 @@ class IpfsSystem {
                             // folder has been created. We can publish it.
                             console.log('publishing folder....');
 
-                            for await (const ipfs_add_res of  await self.node.add(repoPath + '/MainFolder')) {
+                            for await (const ipfs_add_res of await self.node.add(repoPath + '/MainFolder', {recursive: true})) {
                                 let publish_res = await self.node.name.publish(ipfs_add_res.cid.toString());
                                 self.config.main_folder_addr = publish_res.name;
-                                await self.StoreFolderName(self.config.main_folder_addr, 'MainFolder', false);
+                                await self.StoreFolderName(self.config.main_folder_addr, 'MainFolder', false, repoPath + '/MainFolder');
                                 await helpers.UpdateConfig(repoPath, self);
                             }
                         }
@@ -335,8 +353,7 @@ class IpfsSystem {
                 }
             }
         } catch (err) {
-            //main folder does not exist. Create it
-            console.log('Error checking main folder: ', err.toString(),err.stack().toString);
+            console.log('Error checking main folder: ', err.toString(), err.stack.toString);
         }
     }
 
@@ -402,20 +419,21 @@ class IpfsSystem {
 
     }
 
-    async AnnounceFolder(newIpns, folderName) {
+    async AnnounceFolder(nodeId, newIpns, folderName) {
         let message = JSON.stringify({
-            id: self.id,
+            id: nodeId,
             folderName: folderName,
             newIpns: newIpns,
             status: 'announce_folder',
         });
-        await self.node.pubsub.publish(general_topic, Buffer.from(message), (err) => {
+        await this.node.pubsub.publish(general_topic, Buffer.from(message), (err) => {
             if (err) {
                 throw err;
             }
 
         });
     }
+
     /*this function will store a registry consisting of a folder name and an ipns name*/
     async StoreFolderName(ipnsName, folderName, isChanged, localPath) {
         this.config.folders.push({
@@ -431,36 +449,29 @@ class IpfsSystem {
     async UpdateFolder(folderPath) {
         let folderName = path.basename(folderPath);
 
-        let result = await this.node.files.stat(folderPath);
-        if (result.hasOwnProperty('cid')) {
-            try {
-                let pub_result = await this.node.name.publish(result.cid.toString());
-                let index = this.config.folders.findIndex(i => i.folderName === folderName);
-                if (index !== -1) {
-                    this.config.folders[index].ipnsName = pub_result.name;
-                    this.config.folders[index].isChanged = true;
-                    this.config.folders[index].mDate = moment.now();
-                    return pub_result.name;
+        for await (const ipfs_add_res of await this.node.add(folderPath, {recursive: true})) {
+            if (ipfs_add_res.hasOwnProperty('cid')) {
+                try {
+                    let pub_result = await this.node.name.publish(ipfs_add_res.cid.toString());
+                    let index = this.config.folders.findIndex(i => i.folderName === folderName);
+                    if (index !== -1) {
+                        this.config.folders[index].ipnsName = pub_result.name;
+                        this.config.folders[index].isChanged = true;
+                        this.config.folders[index].mDate = moment.now();
+                        return pub_result.name;
+                    }
+                } catch (err) {
+                    console.log('Error publishing ', err.toString());
+                    return null;
                 }
-            } catch (err) {
-                console.log('Error publishing ', err.toString());
-                return null;
+            } else {
+                console.log('Error adding folder ', JSON.stringify(ipfs_add_res));
+
             }
         }
 
     }
 
-
-    /*this function will return the ipns name for a folder or null of folder is not stored*/
-    async RetrieveFolder(folderName) {
-
-        let index = self.other_nodes.findIndex(i => i.folderName === folderName);
-        if (index !== -1) {
-            return this.config.folders[index].ipnsName;
-        } else {
-            return null;
-        }
-    }
 
     InitiateFolderWatchers() {
         let self = this;
@@ -475,55 +486,12 @@ class IpfsSystem {
         }
     }
 
-    async GetExistingFolders() {
-        let result = [];
-        for await (const folder of await this.node.files.ls('/')) {
-
-            if (folder.type == 'folder') {
-                let publish_res = await this.node.name.publish(folder.cid.toString());
-                result.push({
-                    folderName: folder.name,
-                    ipnsName: publish_res.name
-                });
-            }
-        }
-
-    }
-
-    async subscribeOnTopic(topic) {
-        const {spawn} = require("child_process");
-
-        const child = spawn('ipfs pubsub sub', [topic], {shell: true});
-        child.stdout.on("data", data => {
-
-            let content = JSON.parse(data);
-
-            switch (content.title) {
-                case 'information':
-                    //we have new information so we need to store it
-                    break;
-                case 'content_update':
-                    //we need to update certain information about a folder from a peer
-                    break;
-                case 'information_request':
-                    // a peer is asking for information about this peer
-                    break;
-            }
-            console.log(`stdout: ${data}`);
-
-        });
-
-        child.stderr.on("data", data => {
-            console.log(`stderr: ${data}`);
-        });
-
-        child.on('error', (error) => {
-            console.log(`error: ${error.message}`);
-        });
-
-        child.on("close", code => {
-            console.log(`child process exited with code ${code}`);
-        });
+    async GetLatestRepoVersion(database, byAuthor) {
+        const db = await this.db.eventlog(database);
+        const repoHash = db.iterator({limit: 1})
+            .collect()
+            .map((e) => e.payload.value);
+        await db.load();
     }
 
     StorePeerInfo(info) {
