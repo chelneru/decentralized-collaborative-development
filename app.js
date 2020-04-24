@@ -14,14 +14,8 @@ app.use(cors());
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var nodeIpfsRouter = require('./routes/node-info');
-let IpfsSystem = require('./app/p2p-system/ipfs-p2p-system');
-let helpers = require('./app/misc/helpers');
-(async () => {
-//do initial stuff
 
-    global.node = await IpfsSystem.create({},true);
-    console.log('\x1b[33m%s\x1b[0m','we set the node ', global.node.id);
-})();
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');

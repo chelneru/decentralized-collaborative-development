@@ -1,56 +1,99 @@
-var express = require('express');
-var router = express.Router();
-var crypt =  require('../app/misc/crypt')
+const express = require('express');
+let router = express.Router();
+const p2pinterface = require('../app/p2p-system/interface')
+const crypt = require('../app/misc/crypt');
 const helpers = require('../app/misc/helpers');
 /* GET home page. */
+
 router.get('/', (req, res) => {
 
-// The render method takes the name of the HTML
-// page to be rendered as input
-// This page should be in the views folder
-// in the root directory.
-    if (global.node.identity === undefined) {
+    let projectInfo = req.app.get('projectInfo');
+    if (global.identity === undefined) {
         // we are not registered
         res.redirect('/user-auth');
     }
 
-    res.render('home', {peer_id: global.node.id});
+    if (global.projectInfo === undefined) {
+        res.redirect('/setup');
+
+    }
+
+    res.render('home', {peer_id: projectInfo.id});
 
 });
 
 router.get('/user-auth', (req, res) => {
 
-    let existingUser = global.user !== undefined;
+    let existingUser = !helpers.isEmptyObject(global.user);
     res.render('user-auth', {existingUser: existingUser});
 
 
 });
 
 router.post('/login', (req, res) => {
-    res.render('user-auth')
 
 
-    if(global.projects.length === 0) {
+    if (global.projects.length === 0) {
         res.redirect('/setup');
 
-    }
-    else {
-        
+    } else {
+        let projectInfo = global.previousProject;
+
+        (async () => {
+            await p2pinterface.InitializeP2PSystem(projectInfo, global.appConfig.p2psystem);
+        })();
+
+        req.app.set('projectInfo', projectInfo);
+        res.redirect('/user-auth');
+
+        res.redirect('/');
+
     }
 
 
 });
 
 router.post('/register', (req, res) => {
-    global.tempUser = {
+
+    global.appConfig.user = {
         name: req.body.name,
-        email:req.body.email,
-        password:crypt.cryptPassword(req.body.password),
-        folderPath:req.body.folderpath
+        email: req.body.email,
+        password: crypt.cryptPassword(req.body.password),
+        folderPath: req.body.folderpath
     };
 
+    global.identity = {
+        name: req.body.name,
+        network_validated: false
+    }
     res.redirect('/setup');
 
+});
+
+router.post('/create_project', (req, res) => {
+//very late to do: there should be some validation
+
+    console.log(JSON.stringify(req.body));
+    // let result = framework.CreateProject(req.body.project_path, req.body.project_name,{});
+
+    if (result.status === true) {
+        global.projectInfo = result.projectInfo;
+        res.redirect('/');
+    } else {
+        console.log('Couldn\'t create project: ');
+        res.redirect('/setup');
+    }
+});
+
+router.get('/setup', (req, res) => {
+    if (global.identity === undefined) {
+        res.redirect('/user-auth');
+    }
+    res.render('project-start');
+
+});
+router.post('/join_project', (req, res) => {
+    //TODO
 });
 
 
