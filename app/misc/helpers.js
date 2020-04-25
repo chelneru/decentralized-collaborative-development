@@ -145,6 +145,9 @@ exports.UpdateConfig = async (repoPath, node) => {
     }
 
 };
+exports.randomInt = (low, high) =>{
+    return Math.floor(Math.random() * (high - low + 1) + low)
+}
 exports.isEmptyObject = function (obj) {
     for (var prop in obj) {
         if (obj.hasOwnProperty(prop)) {

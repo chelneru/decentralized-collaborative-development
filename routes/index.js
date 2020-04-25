@@ -3,6 +3,7 @@ let router = express.Router();
 const p2pinterface = require('../app/p2p-system/interface')
 const crypt = require('../app/misc/crypt');
 const helpers = require('../app/misc/helpers');
+const framework = require('../app/misc/framework');
 /* GET home page. */
 
 router.get('/', (req, res) => {
@@ -24,7 +25,7 @@ router.get('/', (req, res) => {
 
 router.get('/user-auth', (req, res) => {
 
-    let existingUser = !helpers.isEmptyObject(global.user);
+    let existingUser = !helpers.isEmptyObject(global.appConfig.user);
     res.render('user-auth', {existingUser: existingUser});
 
 
@@ -33,23 +34,26 @@ router.get('/user-auth', (req, res) => {
 router.post('/login', (req, res) => {
 
 
-    if (global.projects.length === 0) {
-        res.redirect('/setup');
+    if (framework.Authenticate(req.body.email, req.body.password)) {
+        if (global.projects.length === 0) {
+            res.redirect('/setup');
 
+        } else {
+            let projectInfo = global.previousProject;
+
+            (async () => {
+                await p2pinterface.InitializeP2PSystem(projectInfo, global.appConfig.p2psystem);
+            })();
+
+            req.app.set('projectInfo', projectInfo);
+
+            res.redirect('/');
+
+        }
     } else {
-        let projectInfo = global.previousProject;
-
-        (async () => {
-            await p2pinterface.InitializeP2PSystem(projectInfo, global.appConfig.p2psystem);
-        })();
-
-        req.app.set('projectInfo', projectInfo);
         res.redirect('/user-auth');
 
-        res.redirect('/');
-
     }
-
 
 });
 
@@ -57,11 +61,12 @@ router.post('/register', (req, res) => {
 
     global.appConfig.user = {
         name: req.body.name,
-        email: req.body.email,
+        email: req.body.email.toLowerCase(),
         password: crypt.cryptPassword(req.body.password),
         folderPath: req.body.folderpath
     };
 
+    framework.SaveAppConfig();
     global.identity = {
         name: req.body.name,
         network_validated: false
@@ -94,6 +99,7 @@ router.get('/setup', (req, res) => {
 });
 router.post('/join_project', (req, res) => {
     //TODO
+    framework.JoinProject(req.body.swarm_key_content, req.body.bootstrap_nodes);
 });
 
 
