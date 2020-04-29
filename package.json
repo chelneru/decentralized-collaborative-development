@@ -40,6 +40,7 @@
     "bcrypt": "^4.0.1",
     "cids": "latest",
     "delay": "latest",
+    "express-session": "^1.17.1",
     "hyperdrive-multiwriter": "^1.1.1",
     "ipfs-http-client": "^42.0.0",
     "jest": "^25.1.0",

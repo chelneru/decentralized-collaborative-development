@@ -1,15 +1,13 @@
 var createError = require('http-errors');
 var express = require('express');
 var ejs = require('ejs');
-var cors = require('cors');
+
 
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
-
 var app = express();
-app.use(cors());
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -19,7 +17,8 @@ var nodeIpfsRouter = require('./routes/node-info');
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
-
+var session = require('express-session');
+app.use(session({secret: 'mySecret', resave: false, saveUninitialized: false}));
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({extended: false}));
@@ -48,5 +47,12 @@ app.use(function (err, req, res, next) {
     res.render('error', {error: err.toString(), stack: err.stack.toString()});
 });
 
+//check config files
+let framework = require('./app/misc/framework');
 
+if (framework.CheckAppConfig()) {
+    framework.LoadAppConfig();
+} else {
+    framework.CreateAppConfig();
+}
 module.exports = app;

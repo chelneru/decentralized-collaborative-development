@@ -7,7 +7,11 @@ const NodeRSA = require('node-rsa');
 exports.GetInput = (message) => {
     return readline.question(message);
 };
-
+exports.sleep = (ms) => {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
+}
 exports.InitializeConfig = (repoPath, node, name, email) => {
 
     try {

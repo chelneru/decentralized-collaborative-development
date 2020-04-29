@@ -13,8 +13,8 @@
 
 <body>
 <div class="container container-fluid">
-    <button type="button" class="btn btn-info register-button">Join a project</button>
-    <button type="button" class="btn btn-info login-button">Create a new project</button>
+    <button type="button" class="btn btn-info join-button">Join a project</button>
+    <button type="button" class="btn btn-info create-proj-button">Create a new project</button>
 
     <div class="join-proj-tab">
         <form id="join_proj_form" method="POST" action="/join_project">
@@ -34,11 +34,11 @@
         <form id="register_form" method="POST" action="/create_project">
 
             <div class="input-group mb-3">
-                <input type="text" class="form-control" placeholder="project_name" aria-label="Project Name"
+                <input type="text" class="form-control" name="project_name" aria-label="Project Name" placeholder="Project Name"
                        aria-describedby="basic-addon1">
             </div>
             <div class="input-group mb-3">
-                <input type="text" class="form-control" placeholder="project_path" aria-label="Project Path"
+                <input type="text" class="form-control" name="project_path" aria-label="Project Path" placeholder="Project Path"
                        aria-describedby="basic-addon1">
             </div>
             <div class="custom-control custom-checkbox">

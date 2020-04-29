@@ -1,58 +1,68 @@
 var express = require('express');
 var router = express.Router();
-var app = express();
-var cors = require('cors');
-
+const p2pinterface = require('../app/p2p-system/interface')
+const framework = require('../app/misc/framework');
 /* GET home page. */
 router.post('/info', async (req, res) => {
 
     let ipfsNode = global.node;
-    let folders = ipfsNode.config.folders;
-    console.log('current folders',JSON.stringify(folders));
-    let node_id = ipfsNode.id;
-    let swarm_peers = await ipfsNode.GetConnectedPeers();
+    let node_id = "";
+    let swarm_peers = "";
     let localAddrsString = "";
-    for (let addrs of ipfsNode.localAddrs) {
-        localAddrsString += "\"" + addrs.toString() + '/ipfs/' + ipfsNode.id + "\",\n";
-    }
-    localAddrsString = localAddrsString.substring(0, localAddrsString.length - 2);
+    let projectName = "";
 
-    res.json({peer_id: node_id, swarm_peers: swarm_peers, localAddrs: localAddrsString, folders: folders});
+    if (ipfsNode !== undefined && global.projectInfo !== undefined) {
+        node_id = ipfsNode.id;
+        swarm_peers = await ipfsNode.GetConnectedPeers();
+        for (let addrs of ipfsNode.localAddrs) {
+            localAddrsString += "\"" + addrs.toString() + '/ipfs/' + ipfsNode.id + "\",\n";
+        }
+        localAddrsString = localAddrsString.substring(0, localAddrsString.length - 2);
+        projectName = global.projectInfo.name;
+    }
+    res.json({
+        peer_id: node_id,
+        swarm_peers: swarm_peers,
+        localAddrs: localAddrsString,
+        project_name: projectName
+    });
 
 });
-//TODO make it work for multiple folders at once
-router.post('/folder-announce', async (req, res) => {
 
-    let ipfsNode = global.node;
-    console.log(ipfsNode.config.folders,req.body.folderName,req.body.ipnsName);
-    let index = ipfsNode.config.folders.findIndex(i => i.folderName === req.body.folderName && i.ipnsName === req.body.ipnsName);
 
-    if (index !== -1) {
-        let folderLocalPath = ipfsNode.config.folders[index].localPath;
-        try {
-            let newIpns = ipfsNode.UpdateFolder(folderLocalPath);
-            await ipfsNode.AnnounceFolder(ipfsNode.id,newIpns, req.body.folderName);
-            res.json({
-                status: true
-            });
-        } catch (e) {
-            res.json({
-                status: false,
-                message: 'error updating/announcing the folder:' + e.toString() + ' ' + e.stack.toString()
-            });
-        }
-
+router.post('/get-swarm-key', async (req, res) => {
+    let projectId = req.body.project_id;
+    let projectIndex = global.appConfig.projects.findIndex(i => i.id == projectId);
+    if (projectIndex >= 0) {
+        let projectInfo = global.appConfig.projects[projectIndex];
+        let swarmKeyContents = p2pinterface.GetSwarmKeyContents(projectInfo);
+        return res.json({status: true, content: swarmKeyContents});
 
     } else {
-        res.json({
-            status: false,
-            message: 'folder not found'
-        });
+        return res.json({status: false, content: null});
+
     }
-
-
 });
 
+router.post('/publish-repo', async (req, res) => {
+    let projectId = req.body.project_id;
+    let projectIndex = global.appConfig.projects.findIndex(i => i.id == projectId);
+    if (projectIndex >= 0) {
+        let projectInfo = global.appConfig.projects[projectIndex];
+        // try {
+        await framework.PublishLocalRepository(projectInfo);
+        // }
+        // catch (e) {
+        //     return res.json({status: false, message: "error in publishing the repo:"+e.toString()});
+        // }
+        return res.json({status: true, message: "success"});
+
+    } else {
+        return res.json({status: false, message: "project not found"});
+
+    }
+
+});
 
 
 module.exports = router;

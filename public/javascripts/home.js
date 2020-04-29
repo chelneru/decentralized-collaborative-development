@@ -3,13 +3,65 @@ let peerUpdateIntervalId = null;
 $(document).ready(function () {
     UpdatePeerInfo();
 
-    $(document).on('click','.row-announce', function () {
-        let $row = $(this).closest('.folder-row');
-        let folderName = $($row).find('.row-name').text();
-        let ipnsName = $($row).find('.row-address').text();
-        AnnounceFolder($row, folderName, ipnsName);
+  $('.publish-repository').on('click',function () {
+      let project_id = $('.project_id').val();
+
+      PublishRepository(project_id);
+  });
+    $('.download-swarm-key').on('click', function () {
+        let project_id = $('.project_id').val();
+       GetSwarmKeyContent(project_id);
     });
 });
+
+function PublishRepository(projectId) {
+    $.ajax({
+        url: 'http://localhost:3000/node/publish-repo',
+        type: 'POST',
+        data: {project_id: projectId},
+        dataType: 'json',
+        success(response) {
+            if (response.status === true) {
+                console.log('successfully published the repo');
+            }
+        },
+        error(jqXHR, status, errorThrown) {
+            console.log(jqXHR);
+
+        }
+    });
+}
+
+function download(filename, text) {
+    var element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+    element.setAttribute('download', filename);
+
+    element.style.display = 'none';
+    document.body.appendChild(element);
+
+    element.click();
+
+    document.body.removeChild(element);
+}
+function GetSwarmKeyContent(projectId) {
+    $.ajax({
+        url: 'http://localhost:3000/node/get-swarm-key',
+        type: 'POST',
+        data: {project_id: projectId},
+        dataType: 'json',
+        success(response) {
+            if (response.status === true) {
+                //serve the swarm key
+                download('swarm.key',response.content);
+            }
+        },
+        error(jqXHR, status, errorThrown) {
+            console.log(jqXHR);
+
+        }
+    });
+}
 
 function UpdatePeerInfo() {
     $.ajax({
@@ -21,7 +73,13 @@ function UpdatePeerInfo() {
                 $('.local-addrs-row .row-value').text(response.localAddrs);
             }
             if (response.swarm_peers !== undefined) {
-                $('.peers-row .row-value').text(response.swarm_peers.length);
+                $('.peers-row .row-value .peers-count').text(response.swarm_peers.length);
+            }
+            if (response.peer_id !== undefined) {
+                $('.id-row .row-value').text(response.peer_id);
+            }
+            if (response.project_name !== undefined) {
+                $('.project-row .row-value').text(response.project_name);
             }
             if (response.folders !== undefined) {
                 $('.folders-line').empty();
@@ -32,7 +90,9 @@ function UpdatePeerInfo() {
             }
 
             //initialize the periodic check
-            // peerUpdateIntervalId = setInterval(UpdatePeerInfo, 3000);
+            if (peerUpdateIntervalId === null) {
+                peerUpdateIntervalId = setInterval(UpdatePeerInfo, 3000);
+            }
 
         }
         ,

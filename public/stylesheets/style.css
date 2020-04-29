@@ -1,33 +1,97 @@
+body {
+    background-color: #eeeeee !important;
+}
+
 .component {
     width: 49%;
     display: inline-block;
-    border: 1px solid black;
-    padding-left: 15px;
+    background-color: white;
+    height: 20%;
+    vertical-align: top;
+    padding: 15px;
+    border-radius: 5px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+
 }
+
 .main-component {
-    border: 1px solid black;
+    background-color: white;
     padding-left: 15px;
+    border-radius: 5px;
+    margin-top: 20px;
+
 }
-.main-component > .line {
+
+.line {
     border-bottom: 1px solid #eeeeee;
     margin-bottom: 10px;
 
 }
 
- .row-label {
+.new-convo {
+    float: right;
+}
+
+.message-row {
+    vertical-align: top;
+}
+
+.message-row .no-of-messages {
+    display: inline-block;
+
+}
+
+.message-row .person {
+    font-weight: bold;
+    margin-right: 10px;
+    display: inline-block;
+}
+
+.message-row .message {
+    color: gray;
+    overflow: hidden;
+    white-space: nowrap;
+    margin-bottom: -6px;
+    text-overflow: ellipsis;
+    width: 150px;
+    display: inline-block;
+}
+
+.row-label {
     display: inline-block;
     width: 10%;
     vertical-align: top;
 }
+
 .row-value {
     display: inline-block;
     width: 50%;
 
 }
+
 .folder-row div:not(:first-child) {
     display: inline-block;
     margin-right: 30px;
 }
-.folder-row:not(:first-child) .row-label  {
+
+.folder-row:not(:first-child) .row-label {
     visibility: hidden;
+}
+
+.node-buttons-area {
+    display: inline-block;
+    float: right;
+}
+
+.modal .row-label {
+    display: inline-block;
+    width: 200px;
+    vertical-align: top;
+}
+
+.modal .row-value {
+    display: inline-block;
+    width: 80%;
+
 }
