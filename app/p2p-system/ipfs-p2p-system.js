@@ -37,6 +37,9 @@ class IpfsSystem {
             };
 
         }
+        if(options.bootstrap !== undefined) {
+            options.config.bootstrap = options.bootstrap;
+        }
         // options.API = '/ip4/127.0.0.1/tcp/5012';
         // options.Gateway = '/ip4/127.0.0.1/tcp/9191';
         if (!fs.existsSync(path.join(options.repo, 'swarm.key'))) {

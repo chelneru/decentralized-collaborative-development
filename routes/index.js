@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
 
     }
     if (global.node === undefined) {
-            await p2pinterface.InitializeP2PSystem({localPath:path.join(global.projectInfo.localPath,'.jsipfs')}, 'ipfs');
+            await p2pinterface.InitializeP2PSystem({localPath:path.join(global.projectInfo.localPath,'.jsipfs'),bootstrap:global.projectInfo.bootstrapNodes}, 'ipfs');
     }
     if (global.orbit === undefined) {
             await p2pinterface.InitializeOrbitInstance(global.projectInfo.localPath);
@@ -93,7 +93,7 @@ router.post('/create_project',async (req, res) => {
     if(req.body.message_ext === "on") {
         modules.push({name:'message',hasDB:true});
     }
-    let result = framework.CreateProject(req.body.project_path,req.body.project_name,modules,req.body.p2psystem);
+    let result =await framework.CreateProject(req.body.project_path,req.body.project_name,modules,req.body.p2psystem);
     if(result.status === true) {
         return res.redirect('/');
     } else {
@@ -111,7 +111,7 @@ router.get('/setup', (req, res) => {
 });
 router.post('/join_project', (req, res) => {
     //TODO
-    framework.JoinProjectIPFS(req.body.swarm_key_content, req.body.bootstrap_nodes);
+    framework.JoinProjectIPFS(req.body.swarm_key_content,req,body.project_path, req.body.bootstrap_nodes);
 });
 
 

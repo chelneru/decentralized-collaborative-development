@@ -77,6 +77,7 @@ exports.CreateProjectInitialFiles = (path, projectName, modules,p2psystem) => {
         localPath: path + '/' + projectName,
         p2psystem: p2psystem,
         modules: modules,
+        bootstrapNodes: [],
         usersDB: {},
         repoDB: {}
     };
@@ -95,7 +96,7 @@ exports.CreateProjectInitialFiles = (path, projectName, modules,p2psystem) => {
 }
 
 exports.CreateProject = async(projectPath,projectName,modules,p2psystem) => {
-    let result = exports.CreateProjectInitialFiles(project_path, projectName, modules,p2psystem);
+    let result = exports.CreateProjectInitialFiles(projectPath, projectName, modules,p2psystem);
 
     if (result.status === true) {
         console.log('Successfully created the project');
@@ -121,13 +122,19 @@ exports.CreateProject = async(projectPath,projectName,modules,p2psystem) => {
         let projectIndex = global.appConfig.projects.findIndex(i => i.id === result.projectInfo.id);
         if (projectIndex >= 0) {
             global.appConfig.previousProject = global.appConfig.projects[projectIndex];
-            framework.SaveAppConfig();
+            exports.SaveAppConfig();
             return {status:true};
         }
         else {
             return {status:false,message:'project not found!'};
 
         }
+    }
+    else{
+        console.log('Failed in creating a project!');
+
+        return {status:false,message:'failed to create project!'};
+
     }
 }
 
@@ -164,7 +171,7 @@ exports.AddProjectIPFS = (projectName, databases, modules) => {
     }
 
 }
-exports.JoinProjectIPFS = (swarmKey,path) => {
+exports.JoinProjectIPFS = (swarmKey,path,bootstrapNodes) => {
     fs.mkdirSync(path + '/newProject' );
     let projectFile = {
         name: "newProject",
@@ -173,6 +180,7 @@ exports.JoinProjectIPFS = (swarmKey,path) => {
         localPath: path + '/newProject',
         modules: [],
         usersDB: {},
+        bootstrapNodes: JSON.parse(bootstrapNodes),
         repoDB: {},
     };
     //write config file

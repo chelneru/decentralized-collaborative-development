@@ -8,22 +8,21 @@ router.post('/info', async (req, res) => {
     let ipfsNode = global.node;
     let node_id = "";
     let swarm_peers = "";
-    let localAddrsString = "";
+    let localAddrsString = [];
     let projectName = "";
 
     if (ipfsNode !== undefined && global.projectInfo !== undefined) {
         node_id = ipfsNode.id;
         swarm_peers = await ipfsNode.GetConnectedPeers();
         for (let addrs of ipfsNode.localAddrs) {
-            localAddrsString += "\"" + addrs.toString() + '/ipfs/' + ipfsNode.id + "\",\n";
+            localAddrsString.push(addrs.toString() + '/ipfs/' + ipfsNode.id);
         }
-        localAddrsString = localAddrsString.substring(0, localAddrsString.length - 2);
         projectName = global.projectInfo.name;
-    }
+    }   
     res.json({
         peer_id: node_id,
         swarm_peers: swarm_peers,
-        localAddrs: localAddrsString,
+        localAddrs: JSON.stringify(localAddrsString),
         project_name: projectName
     });
 

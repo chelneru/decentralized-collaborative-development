@@ -2,11 +2,11 @@ let IpfsSystem = require('./ipfs-p2p-system');
 const fs = require('fs');
 const OrbitDB = require('orbit-db');
 const framework = require('../misc/framework');
-
+const path = require('path');
 exports.InitializeP2PSystem = async (projectInfo, p2psystem) => {
     switch (p2psystem) {
         case 'ipfs':
-            global.node = await IpfsSystem.create({repo:projectInfo.localPath},true);
+            global.node = await IpfsSystem.create({repo:projectInfo.localPath,bootstrap:projectInfo.bootstrap},true);
             console.log('\x1b[33m%s\x1b[0m','node ', global.node.id,' is set');
             break;
     }
@@ -102,5 +102,5 @@ exports.AddProjectDatabase = async (purpose,projectId,dbInfo) => {
 }
 exports.GetSwarmKeyContents = (projectInfo) => {
    let localPath = projectInfo.localPath;
-    return fs.readFileSync(localPath + '/swarm.key').toString();
+    return fs.readFileSync(path.join(localPath,'.jsipfs', 'swarm.key')).toString();
 }
