@@ -10,6 +10,7 @@ const helpers = require('../misc/helpers');
 const framework = require('../misc/framework');
 const general_topic = 'peer-general';
 const p2pinterface= require('../p2p-system/interface');
+const pull = require('pull-stream');
 class IpfsSystem {
 
     constructor(test) {
@@ -52,13 +53,15 @@ class IpfsSystem {
         };
         options.silent = true; //disable console cluttering
         options.libp2p = {};
-        // options.libp2p = {
-        //     config: {
-        //         dht: {
-        //             enabled: true
-        //         }
-        //     }
-        // };
+        options.libp2p = {
+            config: {
+                pubsub: {                     // The pubsub options (and defaults) can be found in the pubsub router documentation
+                    enabled: true,
+                    signMessages: true,         // if messages should be signed
+                    strictSigning: true         // if message signing should be required
+                }
+            }
+        };
         if (private_network === true) {
             options.libp2p.modules = {
                 connProtector: new Protector(swarm_key)
@@ -106,7 +109,7 @@ class IpfsSystem {
         };
         try {
             await this.node.pubsub.subscribe(general_topic, receiveMsg);
-            console.log("\x1b[33m", self.id, ' subscribed to ', general_topic, "\x1b[0m")
+            console.log("\x1b[33m",' subscribed to ', general_topic, "\x1b[0m")
         } catch (e) {
             console.log('Subscribe error : ', e.toString());
         }

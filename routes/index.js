@@ -111,7 +111,13 @@ router.get('/setup', (req, res) => {
 });
 router.post('/join_project', (req, res) => {
     //TODO
-    framework.JoinProjectIPFS(req.body.swarm_key_content,req,body.project_path, req.body.bootstrap_nodes);
+    let result = framework.JoinProjectIPFS(req.body.swarm_key_content,req.body.project_path, req.body.bootstrap_nodes);
+    if(result.status === true) {
+        return res.redirect('/');
+    } else {
+        console.log(result.message);
+        return res.redirect('/setup');
+    }
 });
 
 
