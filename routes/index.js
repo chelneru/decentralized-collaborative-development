@@ -31,7 +31,7 @@ router.get('/', async (req, res) => {
             await p2pinterface.InitializeP2PSystem({localPath:path.join(global.projectInfo.localPath,'.jsipfs'),bootstrap:global.projectInfo.bootstrapNodes}, 'ipfs');
     }
     if (global.orbit === undefined) {
-            // await p2pinterface.InitializeOrbitInstance(global.projectInfo.localPath);
+            await p2pinterface.InitializeOrbitInstance(global.projectInfo.localPath);
     }
     global.appConfig.previousProject = global.projectInfo;
     framework.SaveAppConfig();
