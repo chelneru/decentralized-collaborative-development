@@ -7,6 +7,9 @@ const ipfsClient = require('ipfs-http-client');
 const generator = require('js-ipfs-swarm-key-gen');
 const path = require('path');
 const helpers = require('../misc/helpers');
+const framework = require('../misc/framework');
+const general_topic = 'peer-general';
+const p2pinterface= require('../p2p-system/interface');
 class IpfsSystem {
 
     constructor(test) {
@@ -29,18 +32,18 @@ class IpfsSystem {
 
         }
         if (private_network === true) {
-            options.config= {
-                    bootstrap: []
-                };
+            options.config = {
+                bootstrap: []
+            };
 
         }
         // options.API = '/ip4/127.0.0.1/tcp/5012';
         // options.Gateway = '/ip4/127.0.0.1/tcp/9191';
-        if (!fs.existsSync(path.join(options.repo,'swarm.key'))) {
+        if (!fs.existsSync(path.join(options.repo, 'swarm.key'))) {
             generator(path.join(options.repo, 'swarm.key')).then(() => console.log('swarm key generated'));
             await helpers.sleep(1000);
         }
-        let swarm_key = fs.readFileSync(path.join(options.repo,'swarm.key') );
+        let swarm_key = fs.readFileSync(path.join(options.repo, 'swarm.key'));
         options.EXPERIMENTAL = {
             pubsub: true
         };
@@ -58,7 +61,7 @@ class IpfsSystem {
                 connProtector: new Protector(swarm_key)
             };
         }
-        return  await IPFS.create(options);
+        return await IPFS.create(options);
 
 
     }
@@ -66,7 +69,7 @@ class IpfsSystem {
 
     async CreateIPFSNode(options, private_network) {
         this.other_nodes = [];
-        this.node  = await this.createJsClient(options, private_network);
+        this.node = await this.createJsClient(options, private_network);
 
     }
 
@@ -76,11 +79,72 @@ class IpfsSystem {
         this.addresses = this.id_json.addresses;
         this.id = this.id_json.id;
 
-        //for display swarm addresses
+//subscribe to pubsub
+        let self = this;
+
+        const receiveMsg = async function (msg) {
+            let res = JSON.parse(msg.data.toString());
+            //ignore message from self
+            if (msg.from !== self.id) {
+                console.log('received message: ', res);
+                switch (res.status) {
+                    case 'project_info':
+                        console.log('received project info');
+                        framework.AddProjectIPFS(res.name,res.databases,res.modules);
+                        break;
+
+                }
+            } else {
+                // log self messages
+                let res = JSON.parse(msg.data);
+                console.log('self: ', res.status);
+            }
+
+        };
+        try {
+            await this.node.pubsub.subscribe(general_topic, receiveMsg);
+            console.log("\x1b[33m", self.id, ' subscribed to ', general_topic, "\x1b[0m")
+        } catch (e) {
+            console.log('Subscribe error : ', e.toString());
+        }
+        //display swarm addresses
         this.localAddrs = await this.node.swarm.localAddrs();
         //get repo info
         this.repoInfo = await this.node.repo.stat();
         this.repoInfo = this.repoInfo.repoPath;
+
+        let selfNode = this;
+        this.node.libp2p.on('peer:connect', async (peer) => {
+            // await selfNode.node.swarm.connect(peer.multiaddrs._multiaddrs[0]+'/ipfs/'+peer.id.id);
+            let swarm_peers = await selfNode.GetConnectedPeers();
+            console.log('swarm peers ', JSON.stringify(swarm_peers));
+            if (swarm_peers.length > 0) {
+
+                let message = JSON.stringify({
+                    name: global.projectInfo.name,
+                    modules: global.projectInfo.modules,
+                    status: 'project_info',
+                    databases: p2pinterface.GetCurrentProjectDatabases()
+                });
+                setTimeout(async function () {
+                    let topic_peers = await selfNode.node.pubsub.peers(general_topic);
+                    // console.log('general topic peers ', JSON.stringify(topic_peers));
+                    if (topic_peers.length > 0) {
+                        await selfNode.node.pubsub.publish(general_topic, Buffer.from(message), (err) => {
+                            if (err) {
+                                console.error('error publishing: ', err)
+                            } else {
+                                console.log('successfully published message')
+                            }
+                        });
+                        console.log(selfNode.id, ' sent message', message);
+                    }
+
+
+                }, 3000)
+
+            }
+        });
         return this;
     }
 
@@ -105,6 +169,7 @@ class IpfsSystem {
         }
 
     }
+
     async GetFileInfo(path) {
 
         for await (const file of await this.node.get(path)) {

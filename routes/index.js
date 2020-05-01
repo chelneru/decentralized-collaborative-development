@@ -83,41 +83,21 @@ router.post('/register', (req, res) => {
 router.post('/create_project',async (req, res) => {
 //very late to do: there should be some validation
 
-
-    let result = framework.CreateProject(req.body.project_path, req.body.project_name, {});
-
-    if (result.status === true) {
-        console.log('Successfully created the project');
-        global.projectInfo = result.projectInfo;
-        req.session.projectInfo = result.projectInfo;
-
-
-        if (global.node === undefined) {
-            await p2pinterface.InitializeP2PSystem({localPath:path.join(result.projectInfo.localPath,'.jsipfs')}, 'ipfs');
-        }
-
-        if (global.orbit === undefined) {
-            await p2pinterface.InitializeOrbitInstance(result.projectInfo.localPath);
-        }
-
-
-        //create databases
-        await p2pinterface.CreateDatabase('users',result.projectInfo.id).then( function () {
-        console.log('Users DB created');
-        });
-
-        await p2pinterface.CreateDatabase('repository', result.projectInfo.id).then( function () {
-            console.log('Repository DB created');
-        });
-        let projectIndex = global.appConfig.projects.findIndex(i => i.id === result.projectInfo.id);
-        if (projectIndex >= 0) {
-            global.appConfig.previousProject = global.appConfig.projects[projectIndex];
-            framework.SaveAppConfig();
-        }
-
+    let modules = [];
+    if(req.body.git_ext === "on") {
+        modules.push({name:'git',hasDB:true});
+    }
+    if(req.body.bug_ext === "on") {
+        modules.push({name:'gitbug',hasDB:true});
+    }
+    if(req.body.message_ext === "on") {
+        modules.push({name:'message',hasDB:true});
+    }
+    let result = framework.CreateProject(req.body.project_path,req.body.project_name,modules,req.body.p2psystem);
+    if(result.status === true) {
         return res.redirect('/');
     } else {
-        console.log('Couldn\'t create project: ');
+        console.log(result.message);
         return res.redirect('/setup');
     }
 });
@@ -131,7 +111,7 @@ router.get('/setup', (req, res) => {
 });
 router.post('/join_project', (req, res) => {
     //TODO
-    framework.JoinProject(req.body.swarm_key_content, req.body.bootstrap_nodes);
+    framework.JoinProjectIPFS(req.body.swarm_key_content, req.body.bootstrap_nodes);
 });
 
 

@@ -3,8 +3,8 @@ const helpers = require('./helpers')
 const crypt = require('./crypt');
 const fs = require('fs');
 const moment = require('moment');
-
-
+const path = require('path');
+const p2pinterface = require('../p2p-system/interface')
 exports.LoadAppConfig = () => {
     global.userPath = os.homedir() + '/distcollab';
     let configPath = global.userPath + '/config';
@@ -62,7 +62,7 @@ exports.Authenticate = (email, password) => {
     }
 };
 
-exports.CreateProject = (path, projectName, projectInfo) => {
+exports.CreateProjectInitialFiles = (path, projectName, modules,p2psystem) => {
     fs.mkdirSync(path + '/' + projectName, {recursive: true});
     fs.mkdirSync(path + '/' + projectName + '/repository', {recursive: true});
     if (!fs.existsSync(path + '/' + projectName)) {
@@ -73,12 +73,12 @@ exports.CreateProject = (path, projectName, projectInfo) => {
     let projectFile = {
         id: global.appConfig.projectIdCounter,
         name: projectName,
-        author: projectInfo.author,
+        author: global.identity.name,
         localPath: path + '/' + projectName,
-        p2psystem: projectInfo.p2psystem,
-        modules: projectInfo.modules,
-        usersDB: "",
-        repoDB: ""
+        p2psystem: p2psystem,
+        modules: modules,
+        usersDB: {},
+        repoDB: {}
     };
     fs.writeFileSync(path + '/' + projectName + '/config', JSON.stringify(projectFile));
     if (!fs.existsSync(path + '/' + projectName + '/config')) {
@@ -94,6 +94,43 @@ exports.CreateProject = (path, projectName, projectInfo) => {
     return {status: true, projectInfo: projectFile};
 }
 
+exports.CreateProject = async(projectPath,projectName,modules,p2psystem) => {
+    let result = exports.CreateProjectInitialFiles(project_path, projectName, modules,p2psystem);
+
+    if (result.status === true) {
+        console.log('Successfully created the project');
+        global.projectInfo = result.projectInfo;
+
+        if (global.node === undefined) {
+            await p2pinterface.InitializeP2PSystem({localPath:path.join(result.projectInfo.localPath,'.jsipfs')}, 'ipfs');
+        }
+
+        if (global.orbit === undefined) {
+            await p2pinterface.InitializeOrbitInstance(result.projectInfo.localPath);
+        }
+
+        //create databases
+        await p2pinterface.CreateDatabase('users',result.projectInfo.id).then( function () {
+            console.log('Users DB created');
+        });
+
+        await p2pinterface.CreateDatabase('repository', result.projectInfo.id).then( function () {
+            console.log('Repository DB created');
+        });
+
+        let projectIndex = global.appConfig.projects.findIndex(i => i.id === result.projectInfo.id);
+        if (projectIndex >= 0) {
+            global.appConfig.previousProject = global.appConfig.projects[projectIndex];
+            framework.SaveAppConfig();
+            return {status:true};
+        }
+        else {
+            return {status:false,message:'project not found!'};
+
+        }
+    }
+}
+
 exports.GetProject = (projectId) => {
     let index = global.appConfig.projects.findIndex(i => i.id === projectId);
     if (index >= 0) {
@@ -102,21 +139,44 @@ exports.GetProject = (projectId) => {
     return null;
 }
 
-exports.CreateSwarmKey = (path) => {
+exports.AddProjectIPFS = (projectName, databases, modules) => {
+    let index = global.appConfig.projects.findIndex(i => i.name === "newProject");
+    if (index >= 0) {
+        global.appConfig.projects[index].name = projectName;
+        //rename localPath folder
+        try {
+            let currentPath = global.appConfig.projects[index].localPath;
+            let newPath = path.join(path.dirname(global.appConfig.projects[index].localPath), projectName);
+            fs.renameSync(currentPath, newPath)
+            console.log("Successfully renamed the directory.")
+        } catch (err) {
+            console.log(err)
+        }
+        global.appConfig.projects[index].modules =  [].concat(modules);
+        for (let dbIter = 0; dbIter < databases.length; dbIter++) {
+            global.appConfig.projects[index][databases[dbIter].name] = databases[dbIter].content;
+        }
+        exports.SaveAppConfig();
+        return {status: true, message: 'success'};
+
+    } else {
+        return {status: false, message: 'project not found'};
+    }
 
 }
-exports.JoinProject = (swarmKey) => {
-    fs.mkdirSync(global.userPath + '/newProject' + helpers.randomInt(0, 100), {recursive: true});
+exports.JoinProjectIPFS = (swarmKey,path) => {
+    fs.mkdirSync(path + '/newProject' );
     let projectFile = {
         name: "newProject",
         author: "",
         p2psystem: "ipfs",
-        modules: ['git'],
+        localPath: path + '/newProject',
+        modules: [],
         usersDB: {},
         repoDB: {},
     };
     //write config file
-    fs.writeFileSync(path + '/newProject' + '/config', projectFile);
+    fs.writeFileSync(path + '/newProject' + '/config', JSON.stringify(projectFile));
     if (!fs.existsSync(path + '/newProject' + '/config')) {
         console.log("\x1b[41m", 'Unable to create project config file.');
         return {status: false};
@@ -127,6 +187,11 @@ exports.JoinProject = (swarmKey) => {
         console.log("\x1b[41m", 'Unable to create project swarm key.');
         return {status: false};
     }
+    global.appConfig.projects.push(projectFile);
+    exports.SaveAppConfig();
+
+
+    return {status:true};
 };
     exports.PublishLocalRepository = async (projectInfo) => {
         for await (const file of await global.node.node.add(projectInfo.localPath + '/repository')) {

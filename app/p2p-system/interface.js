@@ -17,6 +17,23 @@ exports.InitializeOrbitInstance = async (projectPath) => {
     console.log('Orbit initialized.')
 }
 
+exports.GetCurrentProjectDatabases = () => {
+    let databases = [];
+    //prepare databases
+    if(global.projectInfo.usersDB !== undefined) {
+        databases.push({name:'usersDB',content:global.projectInfo.usersDB});
+    }
+    if(global.projectInfo.repoDB !== undefined) {
+        databases.push({name:'repoDB',content:global.projectInfo.repoDB});
+    }
+    for(let modIter=0;modIter<=global.projectInfo.modules.length; modIter++) {
+        if(global.projectInfo.modules[modIter].hasDB === true) {
+            databases.push({name:global.projectInfo.modules[modIter].name+'DB',content:global.projectInfo[global.projectInfo.modules[modIter].name+'DB']});
+
+        }
+    }
+    return databases;
+};
 exports.CreateDatabase = async (purpose,projectId) =>{
 
     let db = null;
@@ -35,7 +52,8 @@ exports.CreateDatabase = async (purpose,projectId) =>{
             );
             //save db info in the project config
             index = global.appConfig.projects.findIndex(i => i.id === projectId);
-            global.appConfig.projects[index].usersDB = db.identity;
+            global.appConfig.projects[index].usersDB.publicKey = db.identity.publicKey;
+            global.appConfig.projects[index].usersDB.signatures = db.identity.signatures;
             global.appConfig.projects[index].usersDB.address = db.address.toString();
             global.appConfig.projects[index].usersDB.toJSON = null; //the toJSON() functions does not include the address field . So using JSON.stringify would not include that field
 
@@ -54,9 +72,30 @@ exports.CreateDatabase = async (purpose,projectId) =>{
             );
             //save db info in the project config
             index = global.appConfig.projects.findIndex(i => i.id === projectId);
-            global.appConfig.projects[index].repoDB = db.identity;
+            global.appConfig.projects[index].repoDB.id = db.identity.id;
+            global.appConfig.projects[index].repoDB.publicKey = db.identity.publicKey;
+            global.appConfig.projects[index].repoDB.signatures = db.identity.signatures;
             global.appConfig.projects[index].repoDB.address = db.address.toString();
             global.appConfig.projects[index].repoDB.toJSON = null; //the toJSON() functions does not include the address field . So using JSON.stringify would not include that field
+            framework.SaveAppConfig();
+            break;
+    }
+}
+
+exports.AddProjectDatabase = async (purpose,projectId,dbInfo) => {
+    let db = null;
+    let index = null;
+    switch (purpose) {
+        case 'users':
+            index = global.appConfig.projects.findIndex(i => i.id === projectId);
+            global.appConfig.projects[index].usersDB = dbInfo;
+
+            framework.SaveAppConfig();
+            break;
+        case 'repository':
+            //save db info in the project config
+            index = global.appConfig.projects.findIndex(i => i.id === projectId);
+            global.appConfig.projects[index].repoDB = dbInfo;
             framework.SaveAppConfig();
             break;
     }
