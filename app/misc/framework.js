@@ -106,18 +106,18 @@ exports.CreateProject = async(projectPath,projectName,modules,p2psystem) => {
             await p2pinterface.InitializeP2PSystem({localPath:path.join(result.projectInfo.localPath,'.jsipfs')}, 'ipfs');
         }
 
-        if (global.orbit === undefined) {
-            await p2pinterface.InitializeOrbitInstance(result.projectInfo.localPath);
-        }
-
-        //create databases
-        await p2pinterface.CreateDatabase('users',result.projectInfo.id).then( function () {
-            console.log('Users DB created');
-        });
-
-        await p2pinterface.CreateDatabase('repository', result.projectInfo.id).then( function () {
-            console.log('Repository DB created');
-        });
+        // if (global.orbit === undefined) {
+        //     await p2pinterface.InitializeOrbitInstance(result.projectInfo.localPath);
+        // }
+        //
+        // //create databases
+        // await p2pinterface.CreateDatabase('users',result.projectInfo.id).then( function () {
+        //     console.log('Users DB created');
+        // });
+        //
+        // await p2pinterface.CreateDatabase('repository', result.projectInfo.id).then( function () {
+        //     console.log('Repository DB created');
+        // });
 
         let projectIndex = global.appConfig.projects.findIndex(i => i.id === result.projectInfo.id);
         if (projectIndex >= 0) {
