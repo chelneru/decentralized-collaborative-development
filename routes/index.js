@@ -18,7 +18,11 @@ router.get('/', async (req, res) => {
     }
     if (global.projectInfo === undefined) {
         if (global.appConfig.previousProject !== undefined) {
-            global.projectInfo = framework.GetProject(global.appConfig.previousProject.id);
+            let index = framework.GetProject(global.appConfig.previousProject.id);
+            if(index !== null) {
+                global.projectInfo = global.appConfig.projects[index];
+
+            }
         }
     }
     if (global.projectInfo == undefined) {

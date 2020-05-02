@@ -9,8 +9,9 @@ const path = require('path');
 const helpers = require('../misc/helpers');
 const framework = require('../misc/framework');
 const general_topic = 'peer-general';
-const p2pinterface= require('../p2p-system/interface');
+const p2pinterface = require('../p2p-system/interface');
 const pull = require('pull-stream');
+
 class IpfsSystem {
 
     constructor(test) {
@@ -38,7 +39,7 @@ class IpfsSystem {
             };
 
         }
-        if(options.bootstrap !== undefined) {
+        if (options.bootstrap !== undefined) {
             options.config.bootstrap = options.bootstrap;
         }
         // options.API = '/ip4/127.0.0.1/tcp/5012';
@@ -96,8 +97,22 @@ class IpfsSystem {
                 switch (res.status) {
                     case 'project_info':
                         console.log('received project info');
-                        framework.AddProjectIPFS(res.name,res.databases,res.modules);
+                        framework.AddProjectIPFS(res.name, res.databases, res.modules);
+                        //respond with orbit db info to become collaborator
+                        let message = JSON.stringify({
+                            status: 'project_info_response',
+                            publicKey: global.orbit.identity.publicKey
+                        });
+                        await selfNode.node.pubsub.publish(general_topic, Buffer.from(message), (err) => {
+                            if (err) {
+                                console.error('error responding with database identity: ', err)
+                            } else {
+                                console.log('Responded with database identity.')
+                            }
+                        });
                         break;
+                    case 'project_info_response':
+                        await p2pinterface.AddDatabaseCollaborator(global.projectInfo.id, res.publicKey);
 
                 }
             } else {
@@ -109,7 +124,7 @@ class IpfsSystem {
         };
         try {
             await this.node.pubsub.subscribe(general_topic, receiveMsg);
-            console.log("\x1b[33m",' subscribed to ', general_topic, "\x1b[0m")
+            console.log("\x1b[33m", ' subscribed to ', general_topic, "\x1b[0m")
         } catch (e) {
             console.log('Subscribe error : ', e.toString());
         }
@@ -138,9 +153,9 @@ class IpfsSystem {
                     if (topic_peers.length > 0) {
                         await selfNode.node.pubsub.publish(general_topic, Buffer.from(message), (err) => {
                             if (err) {
-                                console.error('error publishing: ', err)
+                                console.error('error sending project info: ', err)
                             } else {
-                                console.log('successfully published message')
+                                console.log('Sent project info.')
                             }
                         });
                         console.log(selfNode.id, ' sent message', message);
