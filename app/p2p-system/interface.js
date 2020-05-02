@@ -77,8 +77,7 @@ exports.CreateDatabase = async (purpose, projectId) => {
             db = await global.orbit.create('network.users', 'eventlog',
                 {
                     accessController: {
-                        type: 'orbitdb', //OrbitDBAccessController
-                        write: [global.orbit.identity.publicKey]
+                        write: ['*']
                     }
                 }
             );
@@ -95,11 +94,7 @@ exports.CreateDatabase = async (purpose, projectId) => {
             db = await global.orbit.create('network.users', 'keyvalue',
                 {
                     accessController: {
-                        write: [
-                            // Give access to ourselves
-                            global.orbit.identity.id,
-                            //todo Give access to other peers
-                        ]
+                        write: ['*']
                     }
                 }
             );

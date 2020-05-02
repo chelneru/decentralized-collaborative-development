@@ -98,21 +98,9 @@ class IpfsSystem {
                     case 'project_info':
                         console.log('received project info');
                         framework.AddProjectIPFS(res.name, res.databases, res.modules);
-                        //respond with orbit db info to become collaborator
-                        let message = JSON.stringify({
-                            status: 'project_info_response',
-                            publicKey: global.orbit.identity.publicKey
-                        });
-                        await selfNode.node.pubsub.publish(general_topic, Buffer.from(message), (err) => {
-                            if (err) {
-                                console.error('error responding with database identity: ', err)
-                            } else {
-                                console.log('Responded with database identity.')
-                            }
-                        });
+
                         break;
-                    case 'project_info_response':
-                        await p2pinterface.AddDatabaseCollaborator(global.projectInfo.id, res.publicKey);
+
 
                 }
             } else {
