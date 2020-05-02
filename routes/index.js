@@ -106,7 +106,7 @@ router.get('/setup', (req, res) => {
     if (global.identity === undefined) {
         return res.redirect('/user-auth');
     }
-    res.render('project-start',{projectPath:path.join(global.userPath,'newProject')});
+    res.render('project-start',{projectPath:global.userPath});
 
 });
 router.post('/join_project', (req, res) => {
