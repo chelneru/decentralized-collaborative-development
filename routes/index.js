@@ -42,7 +42,7 @@ router.get('/', async (req, res) => {
 router.get('/user-auth', (req, res) => {
 
     let existingUser = !helpers.isEmptyObject(global.appConfig.user);
-    return res.render('user-auth', {existingUser: existingUser});
+    return res.render('user-auth', {existingUser: existingUser,frameworkPath:global.userPath});
 
 
 });
@@ -106,7 +106,7 @@ router.get('/setup', (req, res) => {
     if (global.identity === undefined) {
         return res.redirect('/user-auth');
     }
-    res.render('project-start');
+    res.render('project-start',{projectPath:path.join(global.userPath,'newProject')});
 
 });
 router.post('/join_project', (req, res) => {

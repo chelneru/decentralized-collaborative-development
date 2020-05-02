@@ -6,7 +6,7 @@ const moment = require('moment');
 const path = require('path');
 const p2pinterface = require('../p2p-system/interface')
 exports.LoadAppConfig = () => {
-    global.userPath = os.homedir() + '/distcollab';
+    global.userPath = path.join(os.homedir(),'distcollab');
     let configPath = global.userPath + '/config';
 
     try {
@@ -19,13 +19,13 @@ exports.LoadAppConfig = () => {
 };
 
 exports.CheckAppConfig = () => {
-    global.userPath = os.homedir() + '/distcollab';
-    let configPath = global.userPath + '/config';
+    global.userPath = path.join(os.homedir(),'distcollab');
+    let configPath = path.join(global.userPath,'config');
     return fs.existsSync(configPath);
 }
 
 exports.SaveAppConfig = () => {
-    let configPath = global.userPath + '/config';
+    let configPath = path.join(global.userPath,'config');
 
     if (fs.existsSync(configPath)) {
 
@@ -35,12 +35,12 @@ exports.SaveAppConfig = () => {
     }
 }
 exports.CreateAppConfig = () => {
-    global.userPath = os.homedir() + '/distcollab';
+    global.userPath = path.join(os.homedir(),'distcollab');
 
     if (!fs.existsSync(global.userPath)) {
         fs.mkdirSync(global.userPath);
     }
-    let configPath = global.userPath + '/config';
+    let configPath = path.join(global.userPath,'config');
     let initialConfig = {
         previousProject: '',   //this will be the name of the project
         projects: [],   //an array of projects metadata
@@ -62,10 +62,10 @@ exports.Authenticate = (email, password) => {
     }
 };
 
-exports.CreateProjectInitialFiles = (path, projectName, modules,p2psystem) => {
-    fs.mkdirSync(path + '/' + projectName, {recursive: true});
-    fs.mkdirSync(path + '/' + projectName + '/repository', {recursive: true});
-    if (!fs.existsSync(path + '/' + projectName)) {
+exports.CreateProjectInitialFiles = (projectPath, projectName, modules,p2psystem) => {
+    fs.mkdirSync(path.join(projectPath,projectName), {recursive: true});
+    fs.mkdirSync(path.join(projectPath,projectName,'/repository'), {recursive: true});
+    if (!fs.existsSync(path.join(projectPath,projectName))) {
 
         console.log("\x1b[41m", 'Unable to create project directory.');
         return {status: false};
@@ -74,15 +74,15 @@ exports.CreateProjectInitialFiles = (path, projectName, modules,p2psystem) => {
         id: global.appConfig.projectIdCounter,
         name: projectName,
         author: global.identity.name,
-        localPath: path + '/' + projectName,
+        localPath: projectPath + '/' + projectName,
         p2psystem: p2psystem,
         modules: modules,
         bootstrapNodes: [],
         usersDB: {},
         repoDB: {}
     };
-    fs.writeFileSync(path + '/' + projectName + '/config', JSON.stringify(projectFile));
-    if (!fs.existsSync(path + '/' + projectName + '/config')) {
+    fs.writeFileSync(path.join(projectPath,projectName,'config'), JSON.stringify(projectFile));
+    if (!fs.existsSync(path.join(projectPath,projectName,'config'))) {
         console.log("\x1b[41m", 'Unable to create project config file.');
         return {status: false};
     }
