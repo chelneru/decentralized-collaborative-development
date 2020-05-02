@@ -22,7 +22,7 @@ router.post('/info', async (req, res) => {
     res.json({
         peer_id: node_id,
         swarm_peers: swarm_peers,
-        localAddrs: JSON.stringify(localAddrsString),
+        localAddrs: JSON.stringify(JSON.stringify(localAddrsString)),
         project_name: projectName,
         swarmKeyContents:swarmKeyContents
     });

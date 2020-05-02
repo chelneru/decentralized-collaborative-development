@@ -147,7 +147,6 @@ exports.GetProject = (projectId) => {
 exports.AddProjectIPFS = (projectName, databases, modules) => {
     let index = global.appConfig.projects.findIndex(i => i.name === projectName);
     if (index >= 0) {
-
         global.appConfig.projects[index].modules = [].concat(modules);
         for (let dbIter = 0; dbIter < databases.length; dbIter++) {
             global.appConfig.projects[index][databases[dbIter].name] = databases[dbIter].content;
@@ -162,7 +161,7 @@ exports.AddProjectIPFS = (projectName, databases, modules) => {
 
 }
 exports.JoinProjectIPFS = (projectName,swarmKey, projectPath, bootstrapNodes) => {
-    fs.mkdirSync(path.join(projectPath, 'newProject'));
+    fs.mkdirSync(path.join(projectPath, projectName));
     let projectFile = {
         name: projectName,
         author: "",
