@@ -10,7 +10,7 @@ router.post('/info', async (req, res) => {
     let swarm_peers = "";
     let localAddrsString = [];
     let projectName = "";
-
+    let swarmKeyContents = p2pinterface.GetSwarmKeyContents(global.projectInfo);
     if (ipfsNode !== undefined && global.projectInfo !== undefined) {
         node_id = ipfsNode.id;
         swarm_peers = await ipfsNode.GetConnectedPeers();
@@ -23,7 +23,8 @@ router.post('/info', async (req, res) => {
         peer_id: node_id,
         swarm_peers: swarm_peers,
         localAddrs: JSON.stringify(localAddrsString),
-        project_name: projectName
+        project_name: projectName,
+        swarmKeyContents:swarmKeyContents
     });
 
 });

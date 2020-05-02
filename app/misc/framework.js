@@ -171,27 +171,29 @@ exports.AddProjectIPFS = (projectName, databases, modules) => {
     }
 
 }
-exports.JoinProjectIPFS = (swarmKey,path,bootstrapNodes) => {
-    fs.mkdirSync(path + '/newProject' );
+exports.JoinProjectIPFS = (swarmKey,projectPath,bootstrapNodes) => {
+    fs.mkdirSync(path.join(projectPath,'newProject') );
     let projectFile = {
         name: "newProject",
         author: "",
         p2psystem: "ipfs",
-        localPath: path + '/newProject',
+        localPath: path.join(projectPath,'newProject'),
         modules: [],
         usersDB: {},
         bootstrapNodes: JSON.parse(bootstrapNodes),
         repoDB: {},
     };
     //write config file
-    fs.writeFileSync(path + '/newProject' + '/config', JSON.stringify(projectFile));
-    if (!fs.existsSync(path + '/newProject' + '/config')) {
+    fs.writeFileSync(path.join(projectPath,'newProject','config'), JSON.stringify(projectFile));
+    if (!fs.existsSync(path.join(projectPath,'newProject','config'))) {
         console.log("\x1b[41m", 'Unable to create project config file.');
         return {status: false};
     }
+    fs.mkdirSync(path.join(projectPath,'newProject','.jsipfs') );
+
     //write swarmkey file
-    fs.writeFileSync(path + '/newProject' + '/swarm.key', swarmKey);
-    if (!fs.existsSync(path + '/newProject' + '/swarm.key')) {
+    fs.writeFileSync(path.join(projectPath,'newProject','.jsipfs','swarm.key'), swarmKey);
+    if (!fs.existsSync(path.join(projectPath,'newProject','.jsipfs','swarm.key'))) {
         console.log("\x1b[41m", 'Unable to create project swarm key.');
         return {status: false};
     }
