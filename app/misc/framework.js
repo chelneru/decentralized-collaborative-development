@@ -217,3 +217,27 @@ exports.PublishLocalRepository = async (projectInfo) => {
     }
 
 };
+
+exports.SyncronizeRepository = async (projectInfo) => {
+        const db = await global.orbit.open(projectInfo.repoDB.address);
+        await db.load();
+
+        let dbObject = {
+            hash: file.cid.toString(), //IPFS hash to the content
+            author: {
+                name: global.identity.name,
+                ipfsId: global.node.id
+            },
+            cTime: moment().format("DD-MM-YYYY, hh:mm:ss a")
+        };
+        let currentData = db.get('repository');
+        if (currentData !== null) {
+            let ipfsHash = currentData[currentData.length-1].hash;// get latest hash
+            let syncResult = await global.node.node.get(ipfsHash);
+            console.log(JSON.stringify(syncResult));
+
+        }
+
+
+
+};

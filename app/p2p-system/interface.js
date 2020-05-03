@@ -81,6 +81,7 @@ exports.CreateDatabase = async (purpose, projectId) => {
                     }
                 }
             );
+            
             //save db info in the project config
             index = global.appConfig.projects.findIndex(i => i.id === projectId);
             global.appConfig.projects[index].usersDB.publicKey = db.identity.publicKey;
@@ -126,6 +127,39 @@ exports.AddProjectDatabase = async (purpose, projectId, dbInfo) => {
             global.appConfig.projects[index].repoDB = dbInfo;
             framework.SaveAppConfig();
             break;
+    }
+}
+
+exports.AddUserToDatabase = async (projectInfo,userEmail,userPassword) =>
+{
+    const db = await global.orbit.open(projectInfo.usersDB.address);
+    await db.load();
+    const bcrypt = require('bcrypt');
+    const saltRounds = 10;
+    bcrypt.hash(userPassword, saltRounds, function(err, hash) {
+        // Store hash in your password DB.
+        if(err) {
+            console.log('There was an error in encrypting the password.',err.toString());
+        }
+        else{
+        db.add({email:userEmail,pass:hash});
+        }
+
+    });
+}
+exports.AuthenticateUserOverNetwork = async (projectInfo,userEmail,userPassword) => {
+    if (projectInfo.usersDB !== undefined) {
+        const db = await global.orbit.open(projectInfo.usersDB.address);
+        await db.load();
+        const users = db.iterator().collect().map(e => e.payload.value)
+        for (let iter = 0; iter < users.length; iter++) {
+            if (users[iter].email === userEmail) {
+                return bcrypt.compare(userPassword, users[iter].pass, function (err, result) {
+                    return result;
+                });
+            }
+        }
+        return false;
     }
 }
 exports.GetSwarmKeyContents = (projectInfo) => {
