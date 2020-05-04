@@ -49,8 +49,24 @@ router.post('/publish-repo', async (req, res) => {
     let projectIndex = global.appConfig.projects.findIndex(i => i.id == projectId);
     if (projectIndex >= 0) {
         let projectInfo = global.appConfig.projects[projectIndex];
-        // try {
         await framework.PublishLocalRepository(projectInfo);
+
+        return res.json({status: true, message: "success"});
+
+    } else {
+        return res.json({status: false, message: "project not found"});
+
+    }
+
+});
+
+router.post('/update-repo', async (req, res) => {
+    let projectId = req.body.project_id;
+    let projectIndex = global.appConfig.projects.findIndex(i => i.id == projectId);
+    if (projectIndex >= 0) {
+        let projectInfo = global.appConfig.projects[projectIndex];
+        // try {
+        await framework.SyncronizeRepository(projectInfo);
         // }
         // catch (e) {
         //     return res.json({status: false, message: "error in publishing the repo:"+e.toString()});
@@ -63,6 +79,5 @@ router.post('/publish-repo', async (req, res) => {
     }
 
 });
-
 
 module.exports = router;

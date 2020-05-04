@@ -3,12 +3,14 @@ let peerUpdateIntervalId = null;
 $(document).ready(function () {
     UpdatePeerInfo();
 
-  $('.publish-repository').on('click',function () {
-      let project_id = $('.project_id').val();
-
-      PublishRepository(project_id);
-  });
-
+    $('.publish-repository').on('click', function () {
+        let project_id = $('.project_id').val();
+        PublishRepository(project_id);
+    });
+    $('.update-repository').on('click', function () {
+        let project_id = $('.project_id').val();
+        UpdateRepository(project_id);
+    });
 });
 
 function PublishRepository(projectId) {
@@ -29,6 +31,23 @@ function PublishRepository(projectId) {
     });
 }
 
+function UpdateRepository(projectId) {
+    $.ajax({
+        url: 'http://localhost:3000/node/update-repo',
+        type: 'POST',
+        data: {project_id: projectId},
+        dataType: 'json',
+        success(response) {
+            if (response.status === true) {
+                console.log('successfully updated the repo');
+            }
+        },
+        error(jqXHR, status, errorThrown) {
+            console.log(jqXHR);
+
+        }
+    });
+}
 
 function UpdatePeerInfo() {
     $.ajax({

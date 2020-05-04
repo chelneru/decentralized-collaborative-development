@@ -160,7 +160,7 @@ exports.AddProjectIPFS = (projectName, databases, modules) => {
     }
 
 }
-exports.JoinProjectIPFS = (projectName,swarmKey, projectPath, bootstrapNodes) => {
+exports.JoinProjectIPFS = (projectName, swarmKey, projectPath, bootstrapNodes) => {
     fs.mkdirSync(path.join(projectPath, projectName));
     let projectFile = {
         name: projectName,
@@ -192,52 +192,145 @@ exports.JoinProjectIPFS = (projectName,swarmKey, projectPath, bootstrapNodes) =>
 
     return {status: true};
 };
-exports.PublishLocalRepository = async (projectInfo) => {
-    for await (const file of await global.node.node.add(projectInfo.localPath + '/repository')) {
-        const db = await global.orbit.open(projectInfo.repoDB.address);
-        await db.load();
+exports.AddFolderToIpfs = async (folderPath) => {
+    let files = exports.getAllFiles(folderPath);
+    console.log(JSON.stringify(files));
+    let rootFolder = "/" + path.relative(path.resolve(folderPath, ".."), folderPath);
+    console.log('rootfolder:', rootFolder);
+    try {
+        await global.node.node.files.mkdir(rootFolder);
 
-        let dbObject = {
-            hash: file.cid.toString(), //IPFS hash to the content
-            author: {
-                name: global.identity.name,
-                ipfsId: global.node.id
-            },
-            cTime: moment().format("DD-MM-YYYY, hh:mm:ss a")
-        };
-        let currentData = db.get('repository');
-        console.log(JSON.stringify(currentData));
-        if (currentData == null) {
-            currentData = [dbObject];
-        } else {
-            currentData.push(dbObject);
-        }
-        db.put('repository', currentData);
-        return {status: true, message: ''};
+    }catch (e) {
+        console.log('unable to create repo ipfs folder:',e.toString());
     }
+    for await (const result of await global.node.node.add(files, {pin: true,wrapWithDirectory:true})) {
 
+        let rootItem = "/ipfs/" + result.cid.toString();
+        console.info(result);
+        console.info("Copying from " + rootItem + " to " + rootFolder);
+        try {
+            await global.node.node.files.cp(rootItem, rootFolder);
+        } catch (e) {
+            console.log('Unable to ipfs copy:', e.toString());
+
+        }
+
+    }
+    console.log('finished adding files');
+    return {status:true};
 };
 
-exports.SyncronizeRepository = async (projectInfo) => {
-        const db = await global.orbit.open(projectInfo.repoDB.address);
-        await db.load();
+exports.GetIpfsFolder = async (folderPath) => {
+    try{
+    let result = await global.node.node.files.stat(folderPath);
+        console.log(JSON.stringify(result));
+        return result.cid.toString();
+
+    }catch (e) {
+        console.log('Error getting ipfs folder hash',e.toString())
+    }
+};
+exports.getAllFiles = (dirPath, originalPath, arrayOfFiles) => {
+    let files = fs.readdirSync(dirPath)
+
+    arrayOfFiles = arrayOfFiles || []
+    originalPath = originalPath || path.resolve(dirPath, "..")
+
+    let folder = path.relative(originalPath, path.join(dirPath, "/"))
+    try {
+        arrayOfFiles.push({
+            path: folder.replace(/\\/g, "/"),
+        })
+    } catch (e) {
+        console.log('Unable to push file in the array', e.toString());
+    }
+    files.forEach(function (file) {
+        if (fs.statSync(dirPath + "/" + file).isDirectory()) {
+            arrayOfFiles = exports.getAllFiles(dirPath + "/" + file, originalPath, arrayOfFiles)
+        } else {
+            file = path.join(dirPath, "/", file)
+
+            arrayOfFiles.push({
+                path: path.relative(originalPath, file).replace(/\\/g, "/"),
+                content: fs.readFileSync(file),
+            })
+        }
+    })
+
+    return arrayOfFiles;
+};
+exports.RetrieveFolderFromIpfs = async (hash) => {
+    for await (const file of await global.node.node.get(hash)) {
+        return file;
+    }
+};
+exports.AppendRepoDB = async (projectInfo, dataObject) => {
+    const db = await global.orbit.open(projectInfo.repoDB.address);
+    await db.load();
+    let currentData = db.get('repository');
+    console.log(JSON.stringify(currentData));
+    if (currentData == null) {
+        currentData = [dataObject];
+    } else {
+        currentData.push(dataObject);
+    }
+    db.put('repository', currentData);
+};
+
+exports.PublishLocalRepository = async (projectInfo) => {
+    let result = await exports.AddFolderToIpfs(path.join(projectInfo.localPath, 'repository'));
+    let ipfsHash = await exports.GetIpfsFolder('/repository');
 
         let dbObject = {
-            hash: file.cid.toString(), //IPFS hash to the content
-            author: {
-                name: global.identity.name,
-                ipfsId: global.node.id
-            },
-            cTime: moment().format("DD-MM-YYYY, hh:mm:ss a")
-        };
-        let currentData = db.get('repository');
-        if (currentData !== null) {
-            let ipfsHash = currentData[currentData.length-1].hash;// get latest hash
-            let syncResult = await global.node.node.get(ipfsHash);
-            console.log(JSON.stringify(syncResult));
+        hash: ipfsHash, //IPFS hash to the content
+        author: {
+            name: global.identity.name,
+            ipfsId: global.node.id
+        },
+        cTime: moment().format("DD-MM-YYYY, hh:mm:ss a")
+    };
+    await exports.AppendRepoDB(projectInfo, dbObject);
+    return {status: true, message: ''};
 
+
+};
+exports.SaveIpfsFolderLocally= async (projectInfo,parentFolder,ipfsPath) => {
+    console.log('Saving file(s)',ipfsPath);
+
+    const toIterable = require('stream-to-it')
+    const pipe = require('it-pipe')
+    const { map } = require('streaming-iterables')
+    let output = path.join(projectInfo.localPath,'repository-sync');
+    for await (const file of global.node.node.get(ipfsPath)) {
+        if (file.path.indexOf('/'+parentFolder) > -1) {
+            //remove hash folders for a nice folder location
+
+            file.path = file.path.substring(file.path.indexOf('/'+parentFolder)+('/'+parentFolder).length,file.path.length);
+            const fullFilePath = path.join(output, file.path)
+
+        if (file.content) {
+            await fs.promises.mkdir(path.join(output, path.dirname(file.path)), { recursive: true })
+            await pipe(
+                file.content,
+                map(chunk => chunk.slice()), // BufferList to Buffer
+                toIterable.sink(fs.createWriteStream(fullFilePath))
+            )
+        } else {
+            // this is a dir
+            await fs.promises.mkdir(fullFilePath, { recursive: true })
         }
+    }
+    }
+}
+exports.SyncronizeRepository = async (projectInfo) => {
+    const db = await global.orbit.open(projectInfo.repoDB.address);
+    await db.load();
+    let currentData = db.get('repository');
+    if (currentData !== null) {
+        let ipfsHash = currentData[currentData.length - 1].hash;// get latest hash
 
+         await exports.SaveIpfsFolderLocally(projectInfo,'repository',ipfsHash);
+    }
 
 
 };
