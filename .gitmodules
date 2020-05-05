@@ -1,0 +1,3 @@
+[submodule "git-extension-module"]
+	path = git-extension-module
+	url = https://gitlab.au.dk/thesis-project/git-extension-module.git
