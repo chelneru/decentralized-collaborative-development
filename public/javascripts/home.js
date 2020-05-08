@@ -65,7 +65,7 @@ function UpdatePeerInfo() {
                 $('.id-row .row-value').text(response.peer_id);
             }
             if (response.project_name !== undefined) {
-                $('.project-row .row-value').text(response.project_name);
+                $('.project-row .row-value .project-text').text(response.project_name);
             }
             if (response.swarmKeyContents !== undefined) {
                 $('.swarm-key-row .row-value').text(response.swarmKeyContents);

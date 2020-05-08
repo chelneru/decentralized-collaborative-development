@@ -332,5 +332,11 @@ exports.SyncronizeRepository = async (projectInfo) => {
          await exports.SaveIpfsFolderLocally(projectInfo,'repository',ipfsHash);
     }
 
-
 };
+
+exports.StartExtensionModules = (projectInfo) => {
+    var fork = require('child_process').fork;
+    var appRoot = process.cwd();
+    var child = fork(path.join(appRoot,`/git-extension-module/bin/www`));
+    console.log(JSON.stringify(child));
+}

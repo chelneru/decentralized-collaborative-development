@@ -1,17 +1,18 @@
-var createError = require('http-errors');
-var express = require('express');
-var ejs = require('ejs');
+let createError = require('http-errors');
+let express = require('express');
+let ejs = require('ejs');
 
 
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+let path = require('path');
+let cookieParser = require('cookie-parser');
+let logger = require('morgan');
 
-var app = express();
+let app = express();
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
-var nodeIpfsRouter = require('./routes/node-info');
+let indexRouter = require('./routes/index');
+let usersRouter = require('./routes/users');
+let nodeIpfsRouter = require('./routes/node-info');
+let extensionRouter = require('./routes/extension');
 
 
 // view engine setup
@@ -29,6 +30,7 @@ app.use(express.static(__dirname + '/public'));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/node', nodeIpfsRouter);
+app.use('/extension', extensionRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

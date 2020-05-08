@@ -17,8 +17,8 @@
         <input type="hidden" class="project_id" value="<%= projectInfo.id %>">
         <div class="line project-row">
             <div class="row-label">Project:</div>
-            <div class="row-value">Loading project...</div>
-            <button type="button" class="btn btn-info" data-toggle="modal" data-target="#peerInfoModal">Show peer info</button>
+            <div class="row-value"><span class="project-text">Loading project...</span><button type="button" class="btn btn-link" data-toggle="modal" data-target="#peerInfoModal">Show peer info</button></div>
+
         </div>
 
         <div class="line peers-row">
@@ -34,23 +34,9 @@
         </div>
 
     </div>
-    <div class="version-control component">
-        <div class="line title-row">
-            <div class="">Git - version control</div>
-        </div>
-        <div class="line sync-row">
-            <div class="row-label" style="width: 150px">Last time synced:</div>
-            <div class="row-value">27-apr-2020 12:04:25</div>
-        </div>
+    <div class="components-container">
+    <div class="version-control component"><iframe src="http://localhost:3001"></iframe></div>
 
-        <div class="line sync-row">
-            <button class="btn btn-info">Publish work</button>
-            <button class="btn btn-info">Update work</button>
-        </div>
-        <div class="line diff-row">
-            <div>Changed files</div>
-        </div>
-    </div>
     <div class="messaging component">
         <div class="line title-row">
             <div class="">Matrix - Messaging</div>
@@ -77,6 +63,7 @@
 
 
         </div>
+    </div>
     </div>
 </div>
 

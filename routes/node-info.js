@@ -65,12 +65,9 @@ router.post('/update-repo', async (req, res) => {
     let projectIndex = global.appConfig.projects.findIndex(i => i.id == projectId);
     if (projectIndex >= 0) {
         let projectInfo = global.appConfig.projects[projectIndex];
-        // try {
+
         await framework.SyncronizeRepository(projectInfo);
-        // }
-        // catch (e) {
-        //     return res.json({status: false, message: "error in publishing the repo:"+e.toString()});
-        // }
+
         return res.json({status: true, message: "success"});
 
     } else {

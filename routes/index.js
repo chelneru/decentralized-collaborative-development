@@ -9,7 +9,6 @@ const path = require('path');
 /* GET home page. */
 
 router.get('/', async (req, res) => {
-
     let projectInfo = null;
     if (global.identity === undefined) {
         // we are not registered
@@ -39,6 +38,10 @@ router.get('/', async (req, res) => {
     }
     global.appConfig.previousProject = global.projectInfo;
     framework.SaveAppConfig();
+
+
+    framework.StartExtensionModules(global.projectInfo);
+
     return res.render('home', {projectInfo: global.projectInfo});
 
 });

@@ -1,26 +1,34 @@
 body {
     background-color: #eeeeee !important;
 }
-
+html, body { height: 100%; width: 100%; margin: 0; }
+body {
+    height: 97%;
+}
+.components-container {
+    height: 86%;
+}
 .component {
     width: 49%;
     display: inline-block;
     background-color: white;
-    height: 20%;
+    height: 48%;
     vertical-align: top;
     padding: 15px;
     border-radius: 5px;
     margin-right: 10px;
-    margin-bottom: 10px;
-
+    margin-bottom: 15px;
 }
-
+.component:nth-child(even) {
+    margin-right: 0;
+    width: 49.5%;
+}
 .main-component {
     background-color: white;
-    padding-left: 15px;
+    padding: 15px;
     border-radius: 5px;
-    margin-top: 20px;
-
+    margin-top: 15px;
+    margin-bottom: 15px;
 }
 
 .line {
@@ -94,4 +102,12 @@ body {
     display: inline-block;
     width: 80%;
 
+}
+iframe {
+    border: 0;
+    width: 100%;
+    height: 100%;
+}
+.container-fluid {
+    height: 100%;
 }
