@@ -70,14 +70,20 @@ router.post('/login', (req, res) => {
 
 router.post('/register', (req, res) => {
 
+
     global.appConfig.user = {
         name: req.body.name,
         email: req.body.email.toLowerCase(),
-        password: crypt.cryptPassword(req.body.password),
         folderPath: req.body.folderpath
     };
+    bcrypt.genSalt(10, function(err, salt) {
+        bcrypt.hash(req.body.password, salt, function(err, hash) {
+            // Store hash in your password DB.
+            global.appConfig.user.password = hash;
+            framework.SaveAppConfig();
 
-    framework.SaveAppConfig();
+        });
+    });
 
     global.identity = {
         name: req.body.name,

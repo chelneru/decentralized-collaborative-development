@@ -81,7 +81,7 @@ exports.CreateDatabase = async (purpose, projectId) => {
                     }
                 }
             );
-            
+
             //save db info in the project config
             index = global.appConfig.projects.findIndex(i => i.id === projectId);
             global.appConfig.projects[index].usersDB.publicKey = db.identity.publicKey;
@@ -92,7 +92,7 @@ exports.CreateDatabase = async (purpose, projectId) => {
             framework.SaveAppConfig();
             break;
         case 'repository':
-            db = await global.orbit.create('network.users', 'keyvalue',
+            db = await global.orbit.create('network.repository', 'keyvalue',
                 {
                     accessController: {
                         write: ['*']
@@ -106,6 +106,43 @@ exports.CreateDatabase = async (purpose, projectId) => {
             global.appConfig.projects[index].repoDB.signatures = db.identity.signatures;
             global.appConfig.projects[index].repoDB.address = db.address.toString();
             global.appConfig.projects[index].repoDB.toJSON = null; //the toJSON() functions does not include the address field . So using JSON.stringify would not include that field
+            framework.SaveAppConfig();
+            break;
+        case 'shared-data':
+            db = await global.orbit.create('network.shared-data', 'keyvalue',
+                {
+                    accessController: {
+                        write: ['*']
+                    }
+                }
+            );
+            //save db info in the project config
+            index = global.appConfig.projects.findIndex(i => i.id === projectId);
+            global.appConfig.projects[index].sharedDataDB.id = db.identity.id;
+            global.appConfig.projects[index].sharedDataDB.publicKey = db.identity.publicKey;
+            global.appConfig.projects[index].sharedDataDB.signatures = db.identity.signatures;
+            global.appConfig.projects[index].sharedDataDB.address = db.address.toString();
+            global.appConfig.projects[index].sharedDataDB.toJSON = null; //the toJSON() functions does not include the address field . So using JSON.stringify would not include that field
+            framework.SaveAppConfig();
+            break;
+        case 'git':
+        case 'matrix':
+        case 'git-bug':
+            db = await global.orbit.create('network.'+purpose+'-extension', 'eventlog',
+                {
+                    accessController: {
+                        write: ['*']
+                    }
+                }
+            );
+
+            //save db info in the project config
+            index = global.appConfig.projects.findIndex(i => i.id === projectId);
+            global.appConfig.projects[index][purpose+'DB'].publicKey = db.identity.publicKey;
+            global.appConfig.projects[index][purpose+'DB'].signatures = db.identity.signatures;
+            global.appConfig.projects[index][purpose+'DB'].address = db.address.toString();
+            global.appConfig.projects[index][purpose+'DB'].toJSON = null; //the toJSON() functions does not include the address field . So using JSON.stringify would not include that field
+
             framework.SaveAppConfig();
             break;
     }
@@ -129,23 +166,42 @@ exports.AddProjectDatabase = async (purpose, projectId, dbInfo) => {
             break;
     }
 }
-
-exports.AddUserToDatabase = async (projectInfo,userEmail,userPassword) =>
+exports.AddUserToDatabase = async (projectInfo,userName,userEmail,userPassword) =>
 {
     const db = await global.orbit.open(projectInfo.usersDB.address);
     await db.load();
-    const bcrypt = require('bcrypt');
-    const saltRounds = 10;
-    bcrypt.hash(userPassword, saltRounds, function(err, hash) {
-        // Store hash in your password DB.
-        if(err) {
-            console.log('There was an error in encrypting the password.',err.toString());
-        }
-        else{
-        db.add({email:userEmail,pass:hash});
-        }
+    db.add({email:userEmail,pass:userPassword,name:userName});
 
-    });
+}
+exports.PublishSharedData = async (projectInfo,extensionName,data) =>
+{
+    try {
+    const db = await global.orbit.open(projectInfo.sharedDataDB.address);
+    await db.load();
+    db.put(extensionName, data);
+    return {status:true};
+    }
+    catch (e) {
+        return {status:false,message:e.toString()};
+    }
+
+}
+exports.RetrieveSharedData = async (projectInfo) => {
+    try {
+        const db = await global.orbit.open(projectInfo.sharedDataDB.address);
+        await db.load();
+        let result = [];
+        for (let iterMod = 0; iterMod < projectInfo.modules.length; iterMod++) {
+            result.push({name: projectInfo.modules[iterMod].name, data: db.get(projectInfo.modules[iterMod].name)});
+        }
+        //add shared data from framework
+        result.push({name: 'framework', data: db.get('framework')});
+
+        return {status: true, content: result};
+    } catch (e) {
+        return {status: false, content: null, message: e.toString()};
+    }
+
 }
 exports.AuthenticateUserOverNetwork = async (projectInfo,userEmail,userPassword) => {
     if (projectInfo.usersDB !== undefined) {
@@ -170,4 +226,15 @@ exports.GetSwarmKeyContents = (projectInfo) => {
         console.log('Unable to read swarm key contents:', e.toString());
         return "";
     }
+}
+
+exports.ShareUsers = async (projectInfo) => {
+    const db = await global.orbit.open(projectInfo.usersDB.address);
+    await db.load();
+    const users = db.iterator({ limit: -1 })
+        .collect()
+        .map((e) => {
+            return {name:e.payload.value.name,email:e.payload.value.email}
+        });
+    await exports.PublishSharedData(projectInfo,'framework',users);
 }

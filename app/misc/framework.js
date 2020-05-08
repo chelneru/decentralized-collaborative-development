@@ -118,7 +118,21 @@ exports.CreateProject = async (projectPath, projectName, modules, p2psystem) => 
         await p2pinterface.CreateDatabase('repository', result.projectInfo.id).then(function () {
             console.log('Repository DB created');
         });
+        if (modules.length > 0) {
+            //we have extensions so we need a database for shared data
+            await p2pinterface.CreateDatabase('shared-data', result.projectInfo.id).then(function () {
+                console.log('Shared Data DB created');
+            });
+            for (let iterMod = 0; iterMod < modules.length; iterMod++) {
+                if (modules[iterMod].hasDB) {
+                    await p2pinterface.CreateDatabase(modules[iterMod].name, result.projectInfo.id).then(function () {
+                        console.log('Shared Data DB created');
+                    });
+                }
+            }
+        }
 
+        await p2pinterface.AddUserToDatabase(result.projectInfo,global.appConfig.user.name,global.appConfig.user.email,global.appConfig.user.password);
         let projectIndex = global.appConfig.projects.findIndex(i => i.id === result.projectInfo.id);
         if (projectIndex >= 0) {
             global.appConfig.previousProject = global.appConfig.projects[projectIndex];
@@ -200,10 +214,10 @@ exports.AddFolderToIpfs = async (folderPath) => {
     try {
         await global.node.node.files.mkdir(rootFolder);
 
-    }catch (e) {
-        console.log('unable to create repo ipfs folder:',e.toString());
+    } catch (e) {
+        console.log('unable to create repo ipfs folder:', e.toString());
     }
-    for await (const result of await global.node.node.add(files, {pin: true,wrapWithDirectory:true})) {
+    for await (const result of await global.node.node.add(files, {pin: true, wrapWithDirectory: true})) {
 
         let rootItem = "/ipfs/" + result.cid.toString();
         console.info(result);
@@ -217,17 +231,17 @@ exports.AddFolderToIpfs = async (folderPath) => {
 
     }
     console.log('finished adding files');
-    return {status:true};
+    return {status: true};
 };
 
 exports.GetIpfsFolder = async (folderPath) => {
-    try{
-    let result = await global.node.node.files.stat(folderPath);
+    try {
+        let result = await global.node.node.files.stat(folderPath);
         console.log(JSON.stringify(result));
         return result.cid.toString();
 
-    }catch (e) {
-        console.log('Error getting ipfs folder hash',e.toString())
+    } catch (e) {
+        console.log('Error getting ipfs folder hash', e.toString())
     }
 };
 exports.getAllFiles = (dirPath, originalPath, arrayOfFiles) => {
@@ -277,11 +291,60 @@ exports.AppendRepoDB = async (projectInfo, dataObject) => {
     db.put('repository', currentData);
 };
 
+exports.AppendExtensionDB = async (projectInfo, extensionName, dbObject) => {
+    const db = await global.orbit.open(projectInfo[extensionName + 'DB'].address);
+    await db.load();
+    db.add(dbObject);
+};
+exports.RetrieveExtensionData = async (projectInfo, extensionName, extensionDataPath) => {
+    try {
+        const db = await global.orbit.open(projectInfo[extensionName + 'DB'].address);
+        await db.load();
+
+        let result = db.iterator({limit: -1})
+            .collect()
+            .map((e) => e.payload.value);
+
+        if (result !== null) {
+            let ipfsHash = resulthash;// get latest hash
+
+            await exports.SaveIpfsFolderLocally(projectInfo, 'repository', ipfsHash, extensionDataPath);
+        } else {
+            return {status: false, message: 'hash not found'};
+        }
+        return {status: true};
+
+    } catch (e) {
+        return {status: false, message: e.toString()};
+
+    }
+};
+exports.PublishExtensionData = async (projectInfo, extensionName, extensionPath) => {
+    try {
+        let result = await exports.AddFolderToIpfs(extensionPath);
+        let ipfsHash = await exports.GetIpfsFolder('/' + path.basename(path.dirname(extensionPath)));
+
+        let dbObject = {
+            hash: ipfsHash, //IPFS hash to the content
+            author: {
+                name: global.identity.name,
+                ipfsId: global.node.id
+            },
+            cTime: moment().format("DD-MM-YYYY, hh:mm:ss a")
+        };
+        await exports.AppendExtensionDB(projectInfo, extensionName, dbObject);
+        return {status: true, message: ''};
+
+    } catch (e) {
+        return {status: false, message: e.toString()};
+
+    }
+}
 exports.PublishLocalRepository = async (projectInfo) => {
     let result = await exports.AddFolderToIpfs(path.join(projectInfo.localPath, 'repository'));
     let ipfsHash = await exports.GetIpfsFolder('/repository');
 
-        let dbObject = {
+    let dbObject = {
         hash: ipfsHash, //IPFS hash to the content
         author: {
             name: global.identity.name,
@@ -291,35 +354,32 @@ exports.PublishLocalRepository = async (projectInfo) => {
     };
     await exports.AppendRepoDB(projectInfo, dbObject);
     return {status: true, message: ''};
-
-
 };
-exports.SaveIpfsFolderLocally= async (projectInfo,parentFolder,ipfsPath) => {
-    console.log('Saving file(s)',ipfsPath);
+exports.SaveIpfsFolderLocally = async (projectInfo, parentFolder, ipfsPath, outputPath) => {
+    console.log('Saving file(s)', ipfsPath);
 
     const toIterable = require('stream-to-it')
     const pipe = require('it-pipe')
-    const { map } = require('streaming-iterables')
-    let output = path.join(projectInfo.localPath,'repository-sync');
+    const {map} = require('streaming-iterables')
     for await (const file of global.node.node.get(ipfsPath)) {
-        if (file.path.indexOf('/'+parentFolder) > -1) {
+        if (file.path.indexOf('/' + parentFolder) > -1) {
             //remove hash folders for a nice folder location
 
-            file.path = file.path.substring(file.path.indexOf('/'+parentFolder)+('/'+parentFolder).length,file.path.length);
-            const fullFilePath = path.join(output, file.path)
+            file.path = file.path.substring(file.path.indexOf('/' + parentFolder) + ('/' + parentFolder).length, file.path.length);
+            const fullFilePath = path.join(outputPath, file.path)
 
-        if (file.content) {
-            await fs.promises.mkdir(path.join(output, path.dirname(file.path)), { recursive: true })
-            await pipe(
-                file.content,
-                map(chunk => chunk.slice()), // BufferList to Buffer
-                toIterable.sink(fs.createWriteStream(fullFilePath))
-            )
-        } else {
-            // this is a dir
-            await fs.promises.mkdir(fullFilePath, { recursive: true })
+            if (file.content) {
+                await fs.promises.mkdir(path.join(outputPath, path.dirname(file.path)), {recursive: true})
+                await pipe(
+                    file.content,
+                    map(chunk => chunk.slice()), // BufferList to Buffer
+                    toIterable.sink(fs.createWriteStream(fullFilePath))
+                )
+            } else {
+                // this is a dir
+                await fs.promises.mkdir(fullFilePath, {recursive: true})
+            }
         }
-    }
     }
 }
 exports.SyncronizeRepository = async (projectInfo) => {
@@ -328,8 +388,8 @@ exports.SyncronizeRepository = async (projectInfo) => {
     let currentData = db.get('repository');
     if (currentData !== null) {
         let ipfsHash = currentData[currentData.length - 1].hash;// get latest hash
-
-         await exports.SaveIpfsFolderLocally(projectInfo,'repository',ipfsHash);
+        let outputPath = path.join(projectInfo.localPath, 'repository-sync');
+        await exports.SaveIpfsFolderLocally(projectInfo, 'repository', ipfsHash, outputPath);
     }
 
 };
@@ -337,6 +397,6 @@ exports.SyncronizeRepository = async (projectInfo) => {
 exports.StartExtensionModules = (projectInfo) => {
     var fork = require('child_process').fork;
     var appRoot = process.cwd();
-    var child = fork(path.join(appRoot,`/git-extension-module/bin/www`));
+    var child = fork(path.join(appRoot, `/git-extension-module/bin/www`));
     console.log(JSON.stringify(child));
 }

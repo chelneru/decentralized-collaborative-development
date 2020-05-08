@@ -2,6 +2,7 @@ const express = require('express');
 let router = express.Router();
 const framework = require('../app/misc/framework');
 const path = require('path');
+const p2pinterface = require('../app/p2p-system/interface')
 
 /* GET home page. */
 
@@ -25,4 +26,30 @@ router.post('/update-config', async (req, res) => {
 
 });
 
+router.post('/publish-shared-data', async (req, res) => {
+    let extensionName = req.body.name;
+    let extensionData = req.body.data;
+    let result = p2pinterface.PublishSharedData(global.projectInfo,extensionName,extensionData);
+    return res.json(result);
+});
+
+router.post('/retrieve-shared-data', async (req, res) => {
+
+    let result = p2pinterface.RetrieveSharedData(global.projectInfo);
+    return res.json(result);
+});
+
+router.post('/publish-data', async (req, res) => {
+    let extensionName = req.body.name;
+    let extensionDataPath = req.body.path;
+    let result = await framework.PublishExtensionData(global.projectInfo,extensionName,extensionDataPath);
+    return res.json(result);
+});
+
+router.post('/update-data', async (req, res) => {
+    let extensionName = req.body.name;
+    let extensionDataPath = req.body.path;
+    let result = await  framework.RetrieveExtensionData(global.projectInfo,extensionName,extensionDataPath);
+    return res.json(result);
+});
 module.exports = router;
