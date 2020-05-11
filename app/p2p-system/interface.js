@@ -126,7 +126,7 @@ exports.CreateDatabase = async (purpose, projectId) => {
             framework.SaveAppConfig();
             break;
         case 'git':
-        case 'matrix':
+        case 'chat':
         case 'git-bug':
             db = await global.orbit.create('network.'+purpose+'-extension', 'eventlog',
                 {
