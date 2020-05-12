@@ -81,6 +81,7 @@ exports.CreateProjectInitialFiles = (projectPath, projectName, modules, p2psyste
         usersDB: {},
         repoDB: {}
     };
+
     fs.writeFileSync(path.join(projectPath, projectName, 'config'), JSON.stringify(projectFile));
     if (!fs.existsSync(path.join(projectPath, projectName, 'config'))) {
         console.log("\x1b[41m", 'Unable to create project config file.');
@@ -95,6 +96,9 @@ exports.CreateProjectInitialFiles = (projectPath, projectName, modules, p2psyste
     return {status: true, projectInfo: projectFile};
 }
 
+exports.IsAuthor = (projectInfo) => {
+    return global.identity.name == projectInfo.author;
+}
 exports.CreateProject = async (projectPath, projectName, modules, p2psystem) => {
     let result = exports.CreateProjectInitialFiles(projectPath, projectName, modules, p2psystem);
 
@@ -126,7 +130,7 @@ exports.CreateProject = async (projectPath, projectName, modules, p2psystem) => 
             for (let iterMod = 0; iterMod < modules.length; iterMod++) {
                 if (modules[iterMod].hasDB) {
                     await p2pinterface.CreateDatabase(modules[iterMod].name, result.projectInfo.id).then(function () {
-                        console.log('Shared Data DB created');
+                        console.log(modules[iterMod].name+'DB created');
                     });
                 }
             }
@@ -206,13 +210,12 @@ exports.JoinProjectIPFS = (projectName, swarmKey, projectPath, bootstrapNodes) =
 
     return {status: true};
 };
-exports.AddFolderToIpfs = async (folderPath) => {
+exports.AddFolderToIpfs = async (folderPath,folderName) => {
     let files = exports.getAllFiles(folderPath);
     console.log(JSON.stringify(files));
-    let rootFolder = "/" + path.relative(path.resolve(folderPath, ".."), folderPath);
-    console.log('rootfolder:', rootFolder);
+    console.log('folderName:', folderName);
     try {
-        await global.node.node.files.mkdir(rootFolder);
+        await global.node.node.files.mkdir(folderName);
 
     } catch (e) {
         console.log('unable to create repo ipfs folder:', e.toString());
@@ -221,9 +224,9 @@ exports.AddFolderToIpfs = async (folderPath) => {
 
         let rootItem = "/ipfs/" + result.cid.toString();
         console.info(result);
-        console.info("Copying from " + rootItem + " to " + rootFolder);
+        console.info("Copying from " + rootItem + " to " + folderName);
         try {
-            await global.node.node.files.cp(rootItem, rootFolder);
+            await global.node.node.files.cp(rootItem, folderName);
         } catch (e) {
             console.log('Unable to ipfs copy:', e.toString());
 
@@ -296,7 +299,7 @@ exports.AppendExtensionDB = async (projectInfo, extensionName, dbObject) => {
     await db.load();
     db.add(dbObject);
 };
-exports.RetrieveExtensionData = async (projectInfo, extensionName, extensionDataPath) => {
+exports.RetrieveExtensionData = async (projectInfo, extensionName, extensionDataPath,folderName) => {
     try {
         const db = await global.orbit.open(projectInfo[extensionName + 'DB'].address);
         await db.load();
@@ -308,7 +311,7 @@ exports.RetrieveExtensionData = async (projectInfo, extensionName, extensionData
         if (result !== null) {
             let ipfsHash = resulthash;// get latest hash
 
-            await exports.SaveIpfsFolderLocally(projectInfo, 'repository', ipfsHash, extensionDataPath);
+            await exports.SaveIpfsFolderLocally(projectInfo, folderName, ipfsHash, extensionDataPath);
         } else {
             return {status: false, message: 'hash not found'};
         }
@@ -319,9 +322,9 @@ exports.RetrieveExtensionData = async (projectInfo, extensionName, extensionData
 
     }
 };
-exports.PublishExtensionData = async (projectInfo, extensionName, extensionPath) => {
+exports.PublishExtensionData = async (projectInfo, extensionName, extensionPath,folderName) => {
     try {
-        let result = await exports.AddFolderToIpfs(extensionPath);
+        let result = await exports.AddFolderToIpfs(extensionPath,folderName);
         let ipfsHash = await exports.GetIpfsFolder('/' + path.basename(path.dirname(extensionPath)));
 
         let dbObject = {
@@ -397,6 +400,6 @@ exports.SyncronizeRepository = async (projectInfo) => {
 exports.StartExtensionModules = (projectInfo) => {
     var fork = require('child_process').fork;
     var appRoot = process.cwd();
-    var child = fork(path.join(appRoot, `/git-extension-module/bin/www`));
-    console.log(JSON.stringify(child));
+    var childGit = fork(path.join(appRoot, `/git-extension-module/bin/www`));
+    // var childGitBug = fork(path.join(appRoot, `/git-bug-extension-module/bin/www`));
 }

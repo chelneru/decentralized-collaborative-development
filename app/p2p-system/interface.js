@@ -1,5 +1,6 @@
 let IpfsSystem = require('./ipfs-p2p-system');
 const fs = require('fs');
+const crypt = require('../misc/crypt')
 const OrbitDB = require('orbit-db');
 const framework = require('../misc/framework');
 const path = require('path');
@@ -118,6 +119,7 @@ exports.CreateDatabase = async (purpose, projectId) => {
             );
             //save db info in the project config
             index = global.appConfig.projects.findIndex(i => i.id === projectId);
+            global.appConfig.projects[index].sharedDataDB = {};
             global.appConfig.projects[index].sharedDataDB.id = db.identity.id;
             global.appConfig.projects[index].sharedDataDB.publicKey = db.identity.publicKey;
             global.appConfig.projects[index].sharedDataDB.signatures = db.identity.signatures;
@@ -138,6 +140,8 @@ exports.CreateDatabase = async (purpose, projectId) => {
 
             //save db info in the project config
             index = global.appConfig.projects.findIndex(i => i.id === projectId);
+            global.appConfig.projects[index][purpose+'DB'] = {};
+            global.appConfig.projects[index][purpose+'DB'].id = db.identity.id;
             global.appConfig.projects[index][purpose+'DB'].publicKey = db.identity.publicKey;
             global.appConfig.projects[index][purpose+'DB'].signatures = db.identity.signatures;
             global.appConfig.projects[index][purpose+'DB'].address = db.address.toString();
@@ -210,9 +214,7 @@ exports.AuthenticateUserOverNetwork = async (projectInfo,userEmail,userPassword)
         const users = db.iterator().collect().map(e => e.payload.value)
         for (let iter = 0; iter < users.length; iter++) {
             if (users[iter].email === userEmail) {
-                return bcrypt.compare(userPassword, users[iter].pass, function (err, result) {
-                    return result;
-                });
+                return crypt.comparePassword(userPassword, users[iter].pass);
             }
         }
         return false;

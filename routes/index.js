@@ -39,9 +39,10 @@ router.get('/', async (req, res) => {
     global.appConfig.previousProject = global.projectInfo;
     framework.SaveAppConfig();
 
-
+if(global.startedModules !== true) {
     framework.StartExtensionModules(global.projectInfo);
-
+    global.statedModules = true;
+}
     return res.render('home', {projectInfo: global.projectInfo});
 
 });
@@ -72,21 +73,17 @@ router.post('/register', (req, res) => {
 
 
     global.appConfig.user = {
-        name: req.body.name,
+        name: req.body.username,
         email: req.body.email.toLowerCase(),
         folderPath: req.body.folderpath
     };
-    bcrypt.genSalt(10, function(err, salt) {
-        bcrypt.hash(req.body.password, salt, function(err, hash) {
-            // Store hash in your password DB.
-            global.appConfig.user.password = hash;
-            framework.SaveAppConfig();
+    global.appConfig.user.password = crypt.cryptPassword(req.body.password);
+    framework.SaveAppConfig();
 
-        });
-    });
 
     global.identity = {
         name: req.body.name,
+        email:req.body.email,
         network_validated: false
     }
     return res.redirect('/setup');

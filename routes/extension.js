@@ -12,6 +12,7 @@ router.post('/identity', async (req, res) => {
     let config = global.projectInfo.modules[index];
     identity.projectPath = global.projectInfo.localPath;
     identity.name = global.appConfig.user.name;
+    identity.is_author = framework.IsAuthor(global.projectInfo);
     return res.json({status:true,identity: identity, config: config});
 
 });
@@ -42,14 +43,16 @@ router.post('/retrieve-shared-data', async (req, res) => {
 router.post('/publish-data', async (req, res) => {
     let extensionName = req.body.name;
     let extensionDataPath = req.body.path;
-    let result = await framework.PublishExtensionData(global.projectInfo,extensionName,extensionDataPath);
+    let folderName = req.body.folder;
+    let result = await framework.PublishExtensionData(global.projectInfo,extensionName,extensionDataPath,folderName);
     return res.json(result);
 });
 
 router.post('/update-data', async (req, res) => {
     let extensionName = req.body.name;
     let extensionDataPath = req.body.path;
-    let result = await  framework.RetrieveExtensionData(global.projectInfo,extensionName,extensionDataPath);
+    let folderName = req.body.folder;
+    let result = await  framework.RetrieveExtensionData(global.projectInfo,extensionName,extensionDataPath,folderName);
     return res.json(result);
 });
 module.exports = router;
