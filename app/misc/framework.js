@@ -179,7 +179,7 @@ exports.AddProjectIPFS = (projectName, databases, modules) => {
 
 }
 exports.JoinProjectIPFS = (projectName, swarmKey, projectPath, bootstrapNodes) => {
-    fs.mkdirSync(path.join(projectPath, projectName));
+    fs.mkdirSync(path.join(projectPath, projectName),{recursive:true});
     let projectFile = {
         name: projectName,
         author: "",
