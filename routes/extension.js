@@ -36,23 +36,48 @@ router.post('/publish-shared-data', async (req, res) => {
 
 router.post('/retrieve-shared-data', async (req, res) => {
 
-    let result = p2pinterface.RetrieveSharedData(global.projectInfo);
-    return res.json(result);
+    return res.json(await p2pinterface.RetrieveSharedData(global.projectInfo));
 });
 
 router.post('/publish-data', async (req, res) => {
     let extensionName = req.body.name;
-    let extensionDataPath = req.body.path;
-    let folderName = req.body.folder;
-    let result = await framework.PublishExtensionData(global.projectInfo,extensionName,extensionDataPath,folderName);
+    let data = null;
+    if (extensionName === 'chat') {
+        data = req.body.data;
+    } else {
+        data = {};
+        data.extensionPath = req.body.path;
+        data.folderName = req.body.folder;
+    }
+
+    try {
+    let result = await framework.PublishExtensionData(global.projectInfo, extensionName, data);
+        return res.json(result);
+
+    }catch (e) {
+        console.log('Error publishing data for extension '+extensionName+' :'+e.toString());
+    }
     return res.json(result);
 });
 
 router.post('/update-data', async (req, res) => {
     let extensionName = req.body.name;
-    let extensionDataPath = req.body.path;
-    let folderName = req.body.folder;
-    let result = await  framework.RetrieveExtensionData(global.projectInfo,extensionName,extensionDataPath,folderName);
+    let data = null;
+    if (extensionName === 'chat') {
+        data = req.body.data;
+    } else {
+        data = {};
+        data.extensionPath = req.body.path;
+        data.folderName = req.body.folder;
+    }
+    try {
+    let result = await  framework.RetrieveExtensionData(global.projectInfo,extensionName,data);
+        return res.json(result);
+
+    }
+    catch (e) {
+        console.log('Error retrieving data for extension '+extensionName+': '+e.toString())
+    }
     return res.json(result);
 });
 module.exports = router;

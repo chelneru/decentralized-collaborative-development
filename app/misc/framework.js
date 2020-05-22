@@ -136,7 +136,7 @@ exports.CreateProject = async (projectPath, projectName, modules, p2psystem) => 
             }
         }
 
-        await p2pinterface.AddUserToDatabase(result.projectInfo,global.appConfig.user.name,global.appConfig.user.email,global.appConfig.user.password);
+        await p2pinterface.AddUserToDatabase(result.projectInfo,global.appConfig.user.name,global.appConfig.user.email,global.appConfig.user.password,global.node.id);
         let projectIndex = global.appConfig.projects.findIndex(i => i.id === result.projectInfo.id);
         if (projectIndex >= 0) {
             global.appConfig.previousProject = global.appConfig.projects[projectIndex];
@@ -295,54 +295,123 @@ exports.AppendRepoDB = async (projectInfo, dataObject) => {
 };
 
 exports.AppendExtensionDB = async (projectInfo, extensionName, dbObject) => {
+
     const db = await global.orbit.open(projectInfo[extensionName + 'DB'].address);
     await db.load();
     db.add(dbObject);
+    console.log('Current contents of ',extensionName+'DB',' is ',JSON.stringify(db.iterator({limit: -1})
+        .collect()
+        .map((e) => e.payload.value)));
 };
-exports.RetrieveExtensionData = async (projectInfo, extensionName, extensionDataPath,folderName) => {
+exports.RetrieveExtensionData = async (projectInfo, extensionName, data) => {
     try {
         const db = await global.orbit.open(projectInfo[extensionName + 'DB'].address);
         await db.load();
 
-        let result = db.iterator({limit: -1})
-            .collect()
-            .map((e) => e.payload.value);
+        if(extensionName != 'chat') {
+            let extensionDataPath = data.extensionPath;
+            let folderName = data.folderName;
+            let result = db.iterator({limit: -1})
+                .collect()
+                .map((e) => e.payload.value);
 
-        if (result !== null) {
-            let ipfsHash = resulthash;// get latest hash
+            if (result !== null) {
+                let ipfsHash = result;// get latest hash
 
-            await exports.SaveIpfsFolderLocally(projectInfo, folderName, ipfsHash, extensionDataPath);
-        } else {
-            return {status: false, message: 'hash not found'};
+                await exports.SaveIpfsFolderLocally(projectInfo, folderName, ipfsHash, extensionDataPath);
+            } else {
+                return {status: false, message: 'hash not found'};
+            }
+            return {status: true};
         }
-        return {status: true};
-
+        else {
+            //for chat we retrieve all messages
+            let result = db.iterator({limit: -1})
+                .collect()
+                .map((e) => e.payload.value);
+            if (result !== null) {
+                return {status:true,content:result};
+            } else {
+                return {status: false, message: 'hash not found'};
+            }
+        }
     } catch (e) {
+        console.log('Error retrieving data for extension '+extensionName+': '+e.toString())
         return {status: false, message: e.toString()};
 
     }
-};
-exports.PublishExtensionData = async (projectInfo, extensionName, extensionPath,folderName) => {
-    try {
-        let result = await exports.AddFolderToIpfs(extensionPath,folderName);
-        let ipfsHash = await exports.GetIpfsFolder('/' + path.basename(path.dirname(extensionPath)));
 
-        let dbObject = {
-            hash: ipfsHash, //IPFS hash to the content
-            author: {
-                name: global.identity.name,
-                ipfsId: global.node.id
-            },
-            cTime: moment().format("DD-MM-YYYY, hh:mm:ss a")
-        };
+};
+exports.PublishExtensionData = async (projectInfo, extensionName, data) => {
+    try {
+        let dbObject = null;
+        if (extensionName != 'chat') {
+            let extensionPath = data.extensionPath;
+            let folderName = data.folderName;
+            let result = await exports.AddFolderToIpfs(extensionPath, folderName);
+            let ipfsHash = await exports.GetIpfsFolder('/' + path.basename(path.dirname(extensionPath)));
+
+            dbObject = {
+                hash: ipfsHash, //IPFS hash to the content
+                author: {
+                    name: global.identity.name,
+                    ipfsId: global.node.id
+                },
+                cTime: moment().format("DD-MM-YYYY, hh:mm:ss a")
+            };
+        } else {
+            dbObject = data;
+            dbObject.cTime = moment().format("DD-MM-YYYY, hh:mm:ss a")
+
+        }
         await exports.AppendExtensionDB(projectInfo, extensionName, dbObject);
+
         return {status: true, message: ''};
 
     } catch (e) {
+        console.log('Error publishing for extension '+extensionName+' :'+e.toString())
         return {status: false, message: e.toString()};
 
     }
 }
+exports.GetNetworkUsers = async (projectInfo) => {
+    try {
+    const db = await global.orbit.open(projectInfo.usersDB.address);
+    await db.load();
+    return db.iterator({limit: -1})
+        .collect()
+        .map((e) => {
+            return {name: e.payload.value.name, email: e.payload.value.email,ipfsId: e.payload.value.ipfsId}
+        });
+    }catch (e) {
+        console.log('Error getting users from the database:',e.toString())
+    }
+}
+
+exports.CheckOnlineStatus = async () => {
+    let users = await exports.GetNetworkUsers(global.projectInfo);
+    try {
+        for (let iterUser = 0; iterUser < users.length; iterUser++) {
+            if (global.node.id !== users[iterUser].ipfsId) {
+                for await (const res of global.node.node.ping(users[iterUser].ipfsId)) {
+                    if (res.time) {
+                        users[iterUser].status = 'online';
+                    } else {
+                        users[iterUser].status = 'offline';
+                    }
+                }
+            } else {
+                //this is own ide
+                users[iterUser].status = 'online';
+
+            }
+        }
+        global.users = users;
+    } catch (e) {
+        console.log('Error check users status', e.toString());
+    }
+}
+
 exports.PublishLocalRepository = async (projectInfo) => {
     let result = await exports.AddFolderToIpfs(path.join(projectInfo.localPath, 'repository'));
     let ipfsHash = await exports.GetIpfsFolder('/repository');
@@ -401,5 +470,6 @@ exports.StartExtensionModules = (projectInfo) => {
     var fork = require('child_process').fork;
     var appRoot = process.cwd();
     var childGit = fork(path.join(appRoot, `/git-extension-module/bin/www`));
-    // var childGitBug = fork(path.join(appRoot, `/git-bug-extension-module/bin/www`));
+    var childGitBug = fork(path.join(appRoot, `/git-bug-extension-module/bin/www`));
+    var childChat = fork(path.join(appRoot, `/chat-extension-module/bin/www`));
 }

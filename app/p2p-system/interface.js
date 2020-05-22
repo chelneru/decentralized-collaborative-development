@@ -170,11 +170,11 @@ exports.AddProjectDatabase = async (purpose, projectId, dbInfo) => {
             break;
     }
 }
-exports.AddUserToDatabase = async (projectInfo,userName,userEmail,userPassword) =>
+exports.AddUserToDatabase = async (projectInfo,userName,userEmail,userPassword,ipfsId) =>
 {
     const db = await global.orbit.open(projectInfo.usersDB.address);
     await db.load();
-    db.add({email:userEmail,pass:userPassword,name:userName});
+    db.add({email:userEmail,pass:userPassword,name:userName,ipfsId:ipfsId});
 
 }
 exports.PublishSharedData = async (projectInfo,extensionName,data) =>
@@ -231,12 +231,6 @@ exports.GetSwarmKeyContents = (projectInfo) => {
 }
 
 exports.ShareUsers = async (projectInfo) => {
-    const db = await global.orbit.open(projectInfo.usersDB.address);
-    await db.load();
-    const users = db.iterator({ limit: -1 })
-        .collect()
-        .map((e) => {
-            return {name:e.payload.value.name,email:e.payload.value.email}
-        });
-    await exports.PublishSharedData(projectInfo,'framework',users);
+
+    return exports.PublishSharedData(projectInfo,'framework',global.users);
 }

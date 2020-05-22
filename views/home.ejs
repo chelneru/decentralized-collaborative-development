@@ -27,7 +27,6 @@
                 <div class="node-buttons-area">
                     <button class="btn btn-info publish-repository">Share Local Folder</button>
                     <button class="btn btn-info update-repository">Update Local Folder</button>
-                    <button class="btn btn-info">Update Local Folder From specific peer</button>
                 </div>
             </div>
 
@@ -38,27 +37,13 @@
     <div class="version-control component"><iframe src="http://localhost:3001"></iframe></div>
 
     <div class="messaging component">
-        <div class="line title-row">
-            <div class="">Messaging</div>
-        </div>
-        <div class="line messages-row">
-            <div class="">Conversations</div>
-            <div class="message-row">
-                <span class="person">Thomas</span><span class="no-of-messages badge badge-danger">2</span> <span
-                        class="message">New meeting planned on wednesday. Make sure you are available</span>
-            </div>
-            <div class="message-row">
-                <span class="person">Alin</span><span class="no-of-messages badge badge-danger">1</span> <span
-                        class="message">Thank you.</span>
-            </div>
+        <iframe  class="chat-iframe" src="http://localhost:3003"></iframe>
 
-        </div>
-        <button class="btn btn-info new-convo">New conversation</button>
     </div>
     <div class="management component">
-        <div style="overflow-y: auto">
-        <iframe  class="webui-iframe" src=""></iframe>
-        <iframe  class="gitbug-iframe" src="http://localhost:3002"></iframe>
+        <div style="overflow-y: auto; height: 100%">
+        <iframe  class="webui-iframe" src="" style="height: 72%;"></iframe>
+        <iframe  class="gitbug-iframe" src="http://localhost:3002" style=" height: 50px;"></iframe>
         </div>
     </div>
     </div>

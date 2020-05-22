@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
     if (global.projectInfo === undefined) {
         if (global.appConfig.previousProject !== undefined) {
             let index = framework.GetProject(global.appConfig.previousProject.id);
-            if(index !== null) {
+            if (index !== null) {
                 global.projectInfo = global.appConfig.projects[index];
 
             }
@@ -31,18 +31,28 @@ router.get('/', async (req, res) => {
 
     }
     if (global.node === undefined) {
-            await p2pinterface.InitializeP2PSystem({localPath:path.join(global.projectInfo.localPath,'.jsipfs'),bootstrap:global.projectInfo.bootstrapNodes}, 'ipfs');
+        await p2pinterface.InitializeP2PSystem({
+            localPath: path.join(global.projectInfo.localPath, '.jsipfs'),
+            bootstrap: global.projectInfo.bootstrapNodes
+        }, 'ipfs');
     }
     if (global.orbit === undefined) {
-            await p2pinterface.InitializeOrbitInstance(global.projectInfo.localPath);
+        await p2pinterface.InitializeOrbitInstance(global.projectInfo.localPath);
     }
     global.appConfig.previousProject = global.projectInfo;
     framework.SaveAppConfig();
 
-if(global.startedModules !== true) {
-    framework.StartExtensionModules(global.projectInfo);
-    global.statedModules = true;
-}
+    if (global.startedModules !== true) {
+        framework.StartExtensionModules(global.projectInfo);
+        global.statedModules = true;
+    }
+    setInterval(async function () {
+            framework.CheckOnlineStatus().then(function () {
+            p2pinterface.ShareUsers(global.projectInfo);
+            });
+        }
+    ,5000);
+
     return res.render('home', {projectInfo: global.projectInfo});
 
 });
@@ -50,7 +60,7 @@ if(global.startedModules !== true) {
 router.get('/user-auth', (req, res) => {
 
     let existingUser = !helpers.isEmptyObject(global.appConfig.user);
-    return res.render('user-auth', {existingUser: existingUser,frameworkPath:global.userPath});
+    return res.render('user-auth', {existingUser: existingUser, frameworkPath: global.userPath});
 
 
 });
@@ -83,28 +93,28 @@ router.post('/register', (req, res) => {
 
     global.identity = {
         name: req.body.name,
-        email:req.body.email,
+        email: req.body.email,
         network_validated: false
     }
     return res.redirect('/setup');
 
 });
 
-router.post('/create_project',async (req, res) => {
+router.post('/create_project', async (req, res) => {
 //very late to do: there should be some validation
 
     let modules = [];
-    if(req.body.git_ext === "on") {
-        modules.push({name:'git',hasDB:true});
+    if (req.body.git_ext === "on") {
+        modules.push({name: 'git', hasDB: true});
     }
-    if(req.body.bug_ext === "on") {
-        modules.push({name:'gitbug',hasDB:true});
+    if (req.body.bug_ext === "on") {
+        modules.push({name: 'gitbug', hasDB: true});
     }
-    if(req.body.message_ext === "on") {
-        modules.push({name:'message',hasDB:true});
+    if (req.body.message_ext === "on") {
+        modules.push({name: 'chat', hasDB: true});
     }
-    let result =await framework.CreateProject(req.body.project_path,req.body.project_name,modules,req.body.p2psystem);
-    if(result.status === true) {
+    let result = await framework.CreateProject(req.body.project_path, req.body.project_name, modules, req.body.p2psystem);
+    if (result.status === true) {
         return res.redirect('/');
     } else {
         console.log(result.message);
@@ -116,13 +126,13 @@ router.get('/setup', (req, res) => {
     if (global.identity === undefined) {
         return res.redirect('/user-auth');
     }
-    res.render('project-start',{projectPath:global.userPath});
+    res.render('project-start', {projectPath: global.userPath});
 
 });
 router.post('/join_project', (req, res) => {
     //TODO
-    let result = framework.JoinProjectIPFS(req.body.project_name,req.body.swarm_key_content,req.body.project_path, req.body.bootstrap_nodes);
-    if(result.status === true) {
+    let result = framework.JoinProjectIPFS(req.body.project_name, req.body.swarm_key_content, req.body.project_path, req.body.bootstrap_nodes);
+    if (result.status === true) {
         return res.redirect('/');
     } else {
         console.log(result.message);

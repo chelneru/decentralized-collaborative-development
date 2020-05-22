@@ -11,12 +11,12 @@ $(document).ready(function () {
         let project_id = $('.project_id').val();
         UpdateRepository(project_id);
     });
-    setTimeout(function () {
-        console.log('setting the src');
-        $('.webui-iframe').attr('src', 'http://localhost:3010');
 
-    },10000);
-
+    window.onmessage = function(event){
+        if (event.data === 'start-git-bug-iframe') {
+            $('.webui-iframe').attr('src', 'http://localhost:3010');
+        }
+    };
 });
 
 function PublishRepository(projectId) {

@@ -4,3 +4,6 @@
 [submodule "git-bug-extension-module"]
 	path = git-bug-extension-module
 	url = https://gitlab.au.dk/au614698/git-bug-extension-module.git
+[submodule "chat-extension-module"]
+	path = chat-extension-module
+	url = https://gitlab.au.dk/au614698/chat-extension-module.git
