@@ -34,7 +34,7 @@ exports.GetCurrentProjectDatabases = () => {
         if (global.projectInfo.modules[modIter].hasDB === true) {
             databases.push({
                 name: global.projectInfo.modules[modIter].name + 'DB',
-                content: global.projectInfo[global.projectInfo.modules[modIter].name + 'DB']
+                content: JSON.stringify(global.projectInfo[global.projectInfo.modules[modIter].name + 'DB'])
             });
 
         }
