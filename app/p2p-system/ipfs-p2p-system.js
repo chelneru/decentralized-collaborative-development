@@ -44,6 +44,10 @@ class IpfsSystem {
         }
         // options.API = '/ip4/127.0.0.1/tcp/5012';
         // options.Gateway = '/ip4/127.0.0.1/tcp/9191';
+
+        if (!fs.existsSync(options.repo)) {
+            fs.mkdirSync(options.repo);
+        }
         if (!fs.existsSync(path.join(options.repo, 'swarm.key'))) {
             generator(path.join(options.repo, 'swarm.key')).then(() => console.log('swarm key generated'));
             await helpers.sleep(1000);

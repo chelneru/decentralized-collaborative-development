@@ -167,7 +167,7 @@ exports.AddProjectIPFS = (projectName, databases, modules) => {
     if (index >= 0) {
         global.appConfig.projects[index].modules = [].concat(modules);
         for (let dbIter = 0; dbIter < databases.length; dbIter++) {
-            global.appConfig.projects[index][databases[dbIter].name] = databases[dbIter].content;
+            global.appConfig.projects[index][databases[dbIter].name] = JSON.parse(databases[dbIter].content);
         }
         global.projectInfo = global.appConfig.projects[index];
         exports.SaveAppConfig();
