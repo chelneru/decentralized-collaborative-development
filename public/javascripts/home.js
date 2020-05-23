@@ -12,9 +12,17 @@ $(document).ready(function () {
         UpdateRepository(project_id);
     });
 
-    window.onmessage = function(event){
+    setTimeout(function () {
+        $('.git-iframe').attr('src', 'http://localhost:3001');
+        $('.gitbug-iframe').attr('src', 'http://localhost:3002');
+        $('.chat-iframe').attr('src', 'http://localhost:3003');
+    }, 2000);
+
+    window.onmessage = function (event) {
         if (event.data === 'start-git-bug-iframe') {
-            $('.webui-iframe').attr('src', 'http://localhost:3010');
+            if ($('.webui-iframe').attr('src') === "") {
+                $('.webui-iframe').attr('src', 'http://localhost:3010');
+            }
         }
     };
 });

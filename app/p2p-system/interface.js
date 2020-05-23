@@ -5,6 +5,7 @@ const OrbitDB = require('orbit-db');
 const framework = require('../misc/framework');
 const path = require('path');
 exports.InitializeP2PSystem = async (projectInfo, p2psystem) => {
+    console.time("Initialize IPFS node");
     switch (p2psystem) {
         case 'ipfs':
             global.node = await IpfsSystem.create({
@@ -14,10 +15,14 @@ exports.InitializeP2PSystem = async (projectInfo, p2psystem) => {
             console.log('\x1b[33m%s\x1b[0m', 'node ', global.node.id, ' is set');
             break;
     }
+    console.timeEnd("Initialize IPFS node");
+
 }
 
 exports.InitializeOrbitInstance = async (projectPath) => {
+    console.time("Initialize Orbit instance");
     global.orbit = await OrbitDB.createInstance(global.node.node, {directory: projectPath});
+    console.timeEnd("Initialize Orbit instance");
     console.log('Orbit initialized.')
 }
 
@@ -69,7 +74,7 @@ exports.AddDatabaseCollaborator = async (projectId, collaboratorPublicKey) => {
     }
 
 }
-exports.CreateDatabase = async (purpose, projectId) => {
+exports.CreateDatabase = async (purpose, projectId,dbType) => {
 
     let db = null;
     let index = null;
@@ -130,7 +135,9 @@ exports.CreateDatabase = async (purpose, projectId) => {
         case 'git':
         case 'chat':
         case 'git-bug':
-            db = await global.orbit.create('network.'+purpose+'-extension', 'eventlog',
+
+            dbType = dbType || "eventlog";
+            db = await global.orbit.create('network.'+purpose+'-extension', dbType,
                 {
                     accessController: {
                         write: ['*']

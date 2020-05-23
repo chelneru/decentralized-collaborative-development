@@ -129,14 +129,14 @@ exports.CreateProject = async (projectPath, projectName, modules, p2psystem) => 
             });
             for (let iterMod = 0; iterMod < modules.length; iterMod++) {
                 if (modules[iterMod].hasDB) {
-                    await p2pinterface.CreateDatabase(modules[iterMod].name, result.projectInfo.id).then(function () {
-                        console.log(modules[iterMod].name+'DB created');
+                    await p2pinterface.CreateDatabase(modules[iterMod].name, result.projectInfo.id, modules[iterMod].dbType).then(function () {
+                        console.log(modules[iterMod].name + 'DB created');
                     });
                 }
             }
         }
 
-        await p2pinterface.AddUserToDatabase(result.projectInfo,global.appConfig.user.name,global.appConfig.user.email,global.appConfig.user.password,global.node.id);
+        await p2pinterface.AddUserToDatabase(result.projectInfo, global.appConfig.user.name, global.appConfig.user.email, global.appConfig.user.password, global.node.id);
         let projectIndex = global.appConfig.projects.findIndex(i => i.id === result.projectInfo.id);
         if (projectIndex >= 0) {
             global.appConfig.previousProject = global.appConfig.projects[projectIndex];
@@ -179,7 +179,7 @@ exports.AddProjectIPFS = (projectName, databases, modules) => {
 
 }
 exports.JoinProjectIPFS = (projectName, swarmKey, projectPath, bootstrapNodes) => {
-    fs.mkdirSync(path.join(projectPath, projectName),{recursive:true});
+    fs.mkdirSync(path.join(projectPath, projectName), {recursive: true});
     let projectFile = {
         name: projectName,
         author: "",
@@ -210,10 +210,9 @@ exports.JoinProjectIPFS = (projectName, swarmKey, projectPath, bootstrapNodes) =
 
     return {status: true};
 };
-exports.AddFolderToIpfs = async (folderPath,folderName) => {
+exports.AddFolderToIpfs = async (folderPath, folderName) => {
+    console.time("adding ipfs files");
     let files = exports.getAllFiles(folderPath);
-    console.log(JSON.stringify(files));
-    console.log('folderName:', folderName);
     try {
         await global.node.node.files.mkdir(folderName);
 
@@ -233,7 +232,7 @@ exports.AddFolderToIpfs = async (folderPath,folderName) => {
         }
 
     }
-    console.log('finished adding files');
+    console.timeEnd("adding ipfs files");
     return {status: true};
 };
 
@@ -299,7 +298,7 @@ exports.AppendExtensionDB = async (projectInfo, extensionName, dbObject) => {
     const db = await global.orbit.open(projectInfo[extensionName + 'DB'].address);
     await db.load();
     db.add(dbObject);
-    console.log('Current contents of ',extensionName+'DB',' is ',JSON.stringify(db.iterator({limit: -1})
+    console.log('Current contents of ', extensionName + 'DB', ' is ', JSON.stringify(db.iterator({limit: -1})
         .collect()
         .map((e) => e.payload.value)));
 };
@@ -308,7 +307,7 @@ exports.RetrieveExtensionData = async (projectInfo, extensionName, data) => {
         const db = await global.orbit.open(projectInfo[extensionName + 'DB'].address);
         await db.load();
 
-        if(extensionName != 'chat') {
+        if (extensionName != 'chat') {
             let extensionDataPath = data.extensionPath;
             let folderName = data.folderName;
             let result = db.iterator({limit: -1})
@@ -317,26 +316,26 @@ exports.RetrieveExtensionData = async (projectInfo, extensionName, data) => {
 
             if (result !== null) {
                 let ipfsHash = result;// get latest hash
-
-                await exports.SaveIpfsFolderLocally(projectInfo, folderName, ipfsHash, extensionDataPath);
+                if (ipfsHash.length > 0) {
+                    await exports.SaveIpfsFolderLocally(projectInfo, folderName, ipfsHash, extensionDataPath);
+                }
             } else {
                 return {status: false, message: 'hash not found'};
             }
             return {status: true};
-        }
-        else {
+        } else {
             //for chat we retrieve all messages
             let result = db.iterator({limit: -1})
                 .collect()
                 .map((e) => e.payload.value);
             if (result !== null) {
-                return {status:true,content:result};
+                return {status: true, content: result};
             } else {
                 return {status: false, message: 'hash not found'};
             }
         }
     } catch (e) {
-        console.log('Error retrieving data for extension '+extensionName+': '+e.toString())
+        console.log('Error retrieving data for extension ' + extensionName + ': ' + e.toString())
         return {status: false, message: e.toString()};
 
     }
@@ -369,22 +368,22 @@ exports.PublishExtensionData = async (projectInfo, extensionName, data) => {
         return {status: true, message: ''};
 
     } catch (e) {
-        console.log('Error publishing for extension '+extensionName+' :'+e.toString())
+        console.log('Error publishing for extension ' + extensionName + ' :' + e.toString())
         return {status: false, message: e.toString()};
 
     }
 }
 exports.GetNetworkUsers = async (projectInfo) => {
     try {
-    const db = await global.orbit.open(projectInfo.usersDB.address);
-    await db.load();
-    return db.iterator({limit: -1})
-        .collect()
-        .map((e) => {
-            return {name: e.payload.value.name, email: e.payload.value.email,ipfsId: e.payload.value.ipfsId}
-        });
-    }catch (e) {
-        console.log('Error getting users from the database:',e.toString())
+        const db = await global.orbit.open(projectInfo.usersDB.address);
+        await db.load();
+        return db.iterator({limit: -1})
+            .collect()
+            .map((e) => {
+                return {name: e.payload.value.name, email: e.payload.value.email, ipfsId: e.payload.value.ipfsId}
+            });
+    } catch (e) {
+        console.log('Error getting users from the database:', e.toString())
     }
 }
 
@@ -413,7 +412,7 @@ exports.CheckOnlineStatus = async () => {
 }
 
 exports.PublishLocalRepository = async (projectInfo) => {
-    let result = await exports.AddFolderToIpfs(path.join(projectInfo.localPath, 'repository'));
+    let result = await exports.AddFolderToIpfs(path.join(projectInfo.localPath, 'repository'), '/repository');
     let ipfsHash = await exports.GetIpfsFolder('/repository');
 
     let dbObject = {
@@ -466,10 +465,11 @@ exports.SyncronizeRepository = async (projectInfo) => {
 
 };
 
-exports.StartExtensionModules = (projectInfo) => {
+exports.StartExtensionModules = async () => {
     var fork = require('child_process').fork;
     var appRoot = process.cwd();
     var childGit = fork(path.join(appRoot, `/git-extension-module/bin/www`));
     var childGitBug = fork(path.join(appRoot, `/git-bug-extension-module/bin/www`));
     var childChat = fork(path.join(appRoot, `/chat-extension-module/bin/www`));
+
 }

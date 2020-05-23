@@ -12,7 +12,6 @@ router.get('/', async (req, res) => {
     let projectInfo = null;
     if (global.identity === undefined) {
         // we are not registered
-        console.log(' on / route there is no identity');
         return res.redirect('/user-auth');
     }
     if (global.projectInfo === undefined) {
@@ -25,33 +24,39 @@ router.get('/', async (req, res) => {
         }
     }
     if (global.projectInfo == undefined) {
-        console.log(' on / route there is no project');
-
         return res.redirect('/setup');
-
     }
     if (global.node === undefined) {
-        await p2pinterface.InitializeP2PSystem({
+         p2pinterface.InitializeP2PSystem({
             localPath: path.join(global.projectInfo.localPath, '.jsipfs'),
             bootstrap: global.projectInfo.bootstrapNodes
-        }, 'ipfs');
+        }, 'ipfs').then(function () {
+            if (global.orbit === undefined) {
+                p2pinterface.InitializeOrbitInstance(global.projectInfo.localPath).then(function () {
+                    framework.SaveAppConfig();
+                });
+            }else{
+                framework.SaveAppConfig();
+            }
+        });
     }
-    if (global.orbit === undefined) {
-        await p2pinterface.InitializeOrbitInstance(global.projectInfo.localPath);
-    }
+
     global.appConfig.previousProject = global.projectInfo;
-    framework.SaveAppConfig();
 
     if (global.startedModules !== true) {
-        framework.StartExtensionModules(global.projectInfo);
-        global.statedModules = true;
+        framework.StartExtensionModules().then(function () {
+            global.statedModules = true;
+        });
     }
+
     setInterval(async function () {
+        if(global.orbit !== undefined) {
             framework.CheckOnlineStatus().then(function () {
             p2pinterface.ShareUsers(global.projectInfo);
             });
         }
-    ,5000);
+        }
+    ,3000);
 
     return res.render('home', {projectInfo: global.projectInfo});
 
@@ -105,13 +110,13 @@ router.post('/create_project', async (req, res) => {
 
     let modules = [];
     if (req.body.git_ext === "on") {
-        modules.push({name: 'git', hasDB: true});
+        modules.push({name: 'git', hasDB: true,dbType:"eventlog",dbContent:"ipfsHashes"});
     }
     if (req.body.bug_ext === "on") {
-        modules.push({name: 'gitbug', hasDB: true});
+        modules.push({name: 'gitbug', hasDB: true,dbType:"eventlog",dbContent:"ipfsHashes"});
     }
     if (req.body.message_ext === "on") {
-        modules.push({name: 'chat', hasDB: true});
+        modules.push({name: 'chat', hasDB: true,dbType:"eventlog",dbContent:"customData"});
     }
     let result = await framework.CreateProject(req.body.project_path, req.body.project_name, modules, req.body.p2psystem);
     if (result.status === true) {
