@@ -298,9 +298,9 @@ exports.AppendExtensionDB = async (projectInfo, extensionName, dbObject) => {
     const db = await global.orbit.open(projectInfo[extensionName + 'DB'].address);
     await db.load();
     db.add(dbObject);
-    console.log('Current contents of ', extensionName + 'DB', ' is ', JSON.stringify(db.iterator({limit: -1})
-        .collect()
-        .map((e) => e.payload.value)));
+    // console.log('Current contents of ', extensionName + 'DB', ' is ', JSON.stringify(db.iterator({limit: -1})
+    //     .collect()
+    //     .map((e) => e.payload.value)));
 };
 exports.RetrieveExtensionData = async (projectInfo, extensionName, data) => {
     try {
