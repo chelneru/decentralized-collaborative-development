@@ -21,7 +21,11 @@ $(document).ready(function () {
     window.onmessage = function (event) {
         if (event.data === 'start-git-bug-iframe') {
             if ($('.webui-iframe').attr('src') === "") {
-                $('.webui-iframe').attr('src', 'http://localhost:3010');
+                setTimeout(function () {
+
+                    $('.webui-iframe').attr('src', 'http://localhost:3010');
+                }, 2000);
+
             }
         }
     };

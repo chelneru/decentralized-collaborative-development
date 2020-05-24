@@ -281,6 +281,9 @@ exports.RetrieveFolderFromIpfs = async (hash) => {
     }
 };
 exports.AppendRepoDB = async (projectInfo, dataObject) => {
+    if(global.orbit === undefined) {
+        throw "Orbit is not initialized when trying to append to repository DB";
+    }
     const db = await global.orbit.open(projectInfo.repoDB.address);
     await db.load();
     let currentData = db.get('repository');
@@ -294,7 +297,9 @@ exports.AppendRepoDB = async (projectInfo, dataObject) => {
 };
 
 exports.AppendExtensionDB = async (projectInfo, extensionName, dbObject) => {
-
+    if(global.orbit === undefined) {
+        throw "Orbit is not initialized when trying to append to extension "+extensionName+"DB";
+    }
     const db = await global.orbit.open(projectInfo[extensionName + 'DB'].address);
     await db.load();
     db.add(dbObject);
@@ -304,6 +309,9 @@ exports.AppendExtensionDB = async (projectInfo, extensionName, dbObject) => {
 };
 exports.RetrieveExtensionData = async (projectInfo, extensionName, data) => {
     try {
+        if(global.orbit === undefined) {
+            throw "Orbit is not initialized when trying to retrieve extension data from "+extensionName+"DB";
+        }
         const db = await global.orbit.open(projectInfo[extensionName + 'DB'].address);
         await db.load();
 
@@ -375,6 +383,9 @@ exports.PublishExtensionData = async (projectInfo, extensionName, data) => {
 }
 exports.GetNetworkUsers = async (projectInfo) => {
     try {
+        if(global.orbit === undefined) {
+            throw "Orbit is not initialized when trying to retrieve network users";
+        }
         const db = await global.orbit.open(projectInfo.usersDB.address);
         await db.load();
         return db.iterator({limit: -1})
@@ -454,6 +465,9 @@ exports.SaveIpfsFolderLocally = async (projectInfo, parentFolder, ipfsPath, outp
     }
 }
 exports.SyncronizeRepository = async (projectInfo) => {
+    if(global.orbit === undefined) {
+        throw "Orbit is not initialized when trying to synchronize repository";
+    }
     const db = await global.orbit.open(projectInfo.repoDB.address);
     await db.load();
     let currentData = db.get('repository');
