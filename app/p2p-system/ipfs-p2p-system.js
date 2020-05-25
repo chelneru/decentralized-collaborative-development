@@ -101,8 +101,13 @@ class IpfsSystem {
                 switch (res.status) {
                     case 'project_info':
                         console.log('received project info');
-                        framework.AddProjectIPFS(res.name, res.databases, res.modules);
-
+                        if(global.joining_project === true) {
+                            let join_result = framework.AddProjectIPFS(res.name, res.databases, res.modules);
+                            if(join_result.status === true) {
+                                console.log('Successfully added project data');
+                                global.joining_project = false;
+                            }
+                        }
                         break;
 
 
@@ -130,6 +135,7 @@ class IpfsSystem {
         this.node.libp2p.on('peer:connect', async (peer) => {
             // await selfNode.node.swarm.connect(peer.multiaddrs._multiaddrs[0]+'/ipfs/'+peer.id.id);
             let swarm_peers = await selfNode.GetConnectedPeers();
+            if(global.joining_project !== true) {
             console.log('swarm peers ', JSON.stringify(swarm_peers));
             if (swarm_peers.length > 0) {
 
@@ -156,6 +162,7 @@ class IpfsSystem {
 
                 }, 3000)
 
+            }
             }
         });
         return this;

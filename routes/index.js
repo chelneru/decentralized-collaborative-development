@@ -138,6 +138,7 @@ router.post('/join_project', (req, res) => {
     //TODO
     let result = framework.JoinProjectIPFS(req.body.project_name, req.body.swarm_key_content, req.body.project_path, req.body.bootstrap_nodes);
     if (result.status === true) {
+        global.joining_project = true;
         return res.redirect('/');
     } else {
         console.log(result.message);
