@@ -166,7 +166,12 @@ exports.AddProjectIPFS = (projectName, databases, modules) => {
     if (index >= 0) {
         global.appConfig.projects[index].modules = [].concat(modules);
         for (let dbIter = 0; dbIter < databases.length; dbIter++) {
+            try {
             global.appConfig.projects[index][databases[dbIter].name] = JSON.parse(databases[dbIter].content);
+            }
+            catch (e) {
+                console.log('Unable to parse the JSON for ',databases[dbIter].name,'. The content is "',databases[dbIter].content,'"')
+            }
         }
         global.projectInfo = global.appConfig.projects[index];
         exports.SaveAppConfig();
@@ -342,7 +347,7 @@ exports.RetrieveExtensionData = async (projectInfo, extensionName, data) => {
             }
         }
     } catch (e) {
-        console.log('Error retrieving data for extension ' + extensionName + ': ' + e.toString())
+        console.log('Error retrieving data for extension ' + extensionName + ': ' + e.toString(),JSON.stringify(projectInfo));
         return {status: false, message: e.toString()};
 
     }
@@ -393,7 +398,8 @@ exports.GetNetworkUsers = async (projectInfo) => {
                 return {name: e.payload.value.name, email: e.payload.value.email, ipfsId: e.payload.value.ipfsId}
             });
     } catch (e) {
-        console.log('Error getting users from the database:', e.toString())
+        console.log('Error getting users from the database:', e.toString());
+        console.trace("Here is the error");
     }
 }
 
@@ -417,6 +423,7 @@ exports.CheckOnlineStatus = async () => {
         }
         global.users = users;
     } catch (e) {
+        console.trace('message here');
         console.log('Error check users status', e.toString());
     }
 }

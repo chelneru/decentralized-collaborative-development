@@ -29,8 +29,12 @@ router.post('/initial-info', async (req, res) => {
 router.post('/info', async (req, res) => {
     let swarm_peers = "";
     let ipfsNode = global.node;
-
+    if(ipfsNode !== undefined ) {
     swarm_peers = await ipfsNode.GetConnectedPeers();
+    }
+    else {
+        swarm_peers = 0;
+    }
     res.json({
         swarm_peers: swarm_peers
     });
