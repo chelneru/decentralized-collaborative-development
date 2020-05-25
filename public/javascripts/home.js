@@ -2,7 +2,7 @@ let peerUpdateIntervalId = null;
 
 $(document).ready(function () {
     UpdatePeerInfo();
-
+    UpdatePeerInitialInfo();
     $('.publish-repository').on('click', function () {
         let project_id = $('.project_id').val();
         PublishRepository(project_id);
@@ -73,11 +73,32 @@ function UpdatePeerInfo() {
         type: 'POST',
         dataType: 'json',
         success(response) {
-            if (response.localAddrs !== undefined) {
-                $('.local-addrs-row .row-value').text(response.localAddrs);
-            }
+
             if (response.swarm_peers !== undefined) {
                 $('.peers-row .row-value .peers-count').text(response.swarm_peers.length);
+            }
+            //initialize the periodic check
+            if (peerUpdateIntervalId === null) {
+                peerUpdateIntervalId = setInterval(UpdatePeerInfo, 3000);
+            }
+
+        }
+        ,
+        error(jqXHR, status, errorThrown) {
+            console.log(jqXHR);
+
+        }
+    });
+}
+
+function UpdatePeerInitialInfo() {
+    $.ajax({
+        url: 'http://localhost:3000/node/initial-info',
+        type: 'POST',
+        dataType: 'json',
+        success(response) {
+            if (response.localAddrs !== undefined) {
+                $('.local-addrs-row .row-value').text(response.localAddrs);
             }
             if (response.peer_id !== undefined) {
                 $('.id-row .row-value').text(response.peer_id);
@@ -87,11 +108,6 @@ function UpdatePeerInfo() {
             }
             if (response.swarmKeyContents !== undefined) {
                 $('.swarm-key-row .row-value').text(response.swarmKeyContents);
-            }
-
-            //initialize the periodic check
-            if (peerUpdateIntervalId === null) {
-                peerUpdateIntervalId = setInterval(UpdatePeerInfo, 3000);
             }
 
         }

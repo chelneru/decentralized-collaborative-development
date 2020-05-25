@@ -1,5 +1,4 @@
 const os = require('os');
-const helpers = require('./helpers')
 const crypt = require('./crypt');
 const fs = require('fs');
 const moment = require('moment');

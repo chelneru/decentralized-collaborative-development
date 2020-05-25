@@ -35,6 +35,9 @@ exports.GetCurrentProjectDatabases = () => {
     if (global.projectInfo.repoDB !== undefined) {
         databases.push({name: 'repoDB', content: JSON.stringify(global.projectInfo.repoDB)});
     }
+    if (global.projectInfo.sharedDataDB !== undefined) {
+        databases.push({name: 'sharedDataDB', content: JSON.stringify(global.projectInfo.sharedDataDB)});
+    }
     for (let modIter = 0; modIter < global.projectInfo.modules.length; modIter++) {
         if (global.projectInfo.modules[modIter].hasDB === true) {
             databases.push({
