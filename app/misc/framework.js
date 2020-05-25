@@ -167,10 +167,13 @@ exports.AddProjectIPFS = (projectName, databases, modules) => {
         global.appConfig.projects[index].modules = [].concat(modules);
         for (let dbIter = 0; dbIter < databases.length; dbIter++) {
             try {
-            global.appConfig.projects[index][databases[dbIter].name] = JSON.parse(databases[dbIter].content);
-            }
-            catch (e) {
-                console.log('Unable to parse the JSON for ',databases[dbIter].name,'. The content is "',databases[dbIter].content,'"')
+                if (databases[dbIter].content !== undefined) {
+                    global.appConfig.projects[index][databases[dbIter].name] = JSON.parse(databases[dbIter].content);
+                } else {
+                    global.appConfig.projects[index][databases[dbIter].name] = {name: databases[dbIter].name};
+                }
+            } catch (e) {
+                console.log('Unable to parse the JSON for ', databases[dbIter].name, '. The content is "', databases[dbIter].content, '"')
             }
         }
         global.projectInfo = global.appConfig.projects[index];
@@ -285,7 +288,7 @@ exports.RetrieveFolderFromIpfs = async (hash) => {
     }
 };
 exports.AppendRepoDB = async (projectInfo, dataObject) => {
-    if(global.orbit === undefined) {
+    if (global.orbit === undefined) {
         throw "Orbit is not initialized when trying to append to repository DB";
     }
     const db = await global.orbit.open(projectInfo.repoDB.address);
@@ -301,8 +304,8 @@ exports.AppendRepoDB = async (projectInfo, dataObject) => {
 };
 
 exports.AppendExtensionDB = async (projectInfo, extensionName, dbObject) => {
-    if(global.orbit === undefined) {
-        throw "Orbit is not initialized when trying to append to extension "+extensionName+"DB";
+    if (global.orbit === undefined) {
+        throw "Orbit is not initialized when trying to append to extension " + extensionName + "DB";
     }
     const db = await global.orbit.open(projectInfo[extensionName + 'DB'].address);
     await db.load();
@@ -313,8 +316,8 @@ exports.AppendExtensionDB = async (projectInfo, extensionName, dbObject) => {
 };
 exports.RetrieveExtensionData = async (projectInfo, extensionName, data) => {
     try {
-        if(global.orbit === undefined) {
-            throw "Orbit is not initialized when trying to retrieve extension data from "+extensionName+"DB";
+        if (global.orbit === undefined) {
+            throw "Orbit is not initialized when trying to retrieve extension data from " + extensionName + "DB";
         }
         const db = await global.orbit.open(projectInfo[extensionName + 'DB'].address);
         await db.load();
@@ -347,7 +350,7 @@ exports.RetrieveExtensionData = async (projectInfo, extensionName, data) => {
             }
         }
     } catch (e) {
-        console.log('Error retrieving data for extension ' + extensionName + ': ' + e.toString(),JSON.stringify(projectInfo));
+        console.log('Error retrieving data for extension ' + extensionName + ': ' + e.toString(), JSON.stringify(projectInfo));
         return {status: false, message: e.toString()};
 
     }
@@ -387,19 +390,23 @@ exports.PublishExtensionData = async (projectInfo, extensionName, data) => {
 }
 exports.GetNetworkUsers = async (projectInfo) => {
     try {
-        if(global.orbit === undefined) {
+        if (global.orbit === undefined) {
             throw "Orbit is not initialized when trying to retrieve network users";
         }
-        const db = await global.orbit.open(projectInfo.usersDB.address);
-        await db.load();
-        return db.iterator({limit: -1})
-            .collect()
-            .map((e) => {
-                return {name: e.payload.value.name, email: e.payload.value.email, ipfsId: e.payload.value.ipfsId}
-            });
+        if (projectInfo.usersDB.address !== undefined) {
+            const db = await global.orbit.open(projectInfo.usersDB.address);
+            await db.load();
+            return db.iterator({limit: -1})
+                .collect()
+                .map((e) => {
+                    return {name: e.payload.value.name, email: e.payload.value.email, ipfsId: e.payload.value.ipfsId}
+                });
+        } else {
+            console.log('UsersDB is not initialized. Result will be [].');
+            return [];
+        }
     } catch (e) {
         console.log('Error getting users from the database:', e.toString());
-        console.trace("Here is the error");
     }
 }
 
@@ -423,7 +430,6 @@ exports.CheckOnlineStatus = async () => {
         }
         global.users = users;
     } catch (e) {
-        console.trace('message here');
         console.log('Error check users status', e.toString());
     }
 }
@@ -471,7 +477,7 @@ exports.SaveIpfsFolderLocally = async (projectInfo, parentFolder, ipfsPath, outp
     }
 }
 exports.SyncronizeRepository = async (projectInfo) => {
-    if(global.orbit === undefined) {
+    if (global.orbit === undefined) {
         throw "Orbit is not initialized when trying to synchronize repository";
     }
     const db = await global.orbit.open(projectInfo.repoDB.address);
