@@ -220,10 +220,7 @@ exports.JoinProjectIPFS = (projectName, swarmKey, projectPath, bootstrapNodes) =
 exports.AddFolderToIpfs = async (folderPath, folderName) => {
     console.time("adding ipfs files");
     let files = exports.getAllFiles(folderPath);
-    debugger;
     try {
-        await global.node.node.files.rm(folderName,{recursive:true});
-
         await global.node.node.files.mkdir(folderName);
 
     } catch (e) {
@@ -232,7 +229,7 @@ exports.AddFolderToIpfs = async (folderPath, folderName) => {
     for await (const result of await global.node.node.add(files, {pin: true, wrapWithDirectory: true})) {
 
         let rootItem = "/ipfs/" + result.cid.toString();
-        // console.info(result);
+        console.info(result);
         console.info("Copying from " + rootItem + " to " + folderName);
         try {
             await global.node.node.files.cp(rootItem, folderName);
@@ -248,6 +245,10 @@ exports.AddFolderToIpfs = async (folderPath, folderName) => {
 
 exports.GetIpfsFolder = async (folderPath) => {
     try {
+        for await (const file of await global.node.node.files.ls()) {
+            console.log(JSON.stringify(file) );
+
+        }
         let result = await global.node.node.files.stat(folderPath);
         console.log(JSON.stringify(result));
         return result.cid.toString();
@@ -328,12 +329,12 @@ exports.RetrieveExtensionData = async (projectInfo, extensionName, data) => {
         if (extensionName != 'chat') {
             let extensionDataPath = data.extensionPath;
             let folderName = data.folderName;
-            let result = db.iterator({limit: -1})
+            let result = db.iterator({limit: 1})
                 .collect()
                 .map((e) => e.payload.value);
 
             if (result !== null) {
-                let ipfsHash = result;// get latest hash
+                let ipfsHash = result[0].hash;// get latest hash
                 if (ipfsHash.length > 0) {
                     await exports.SaveIpfsFolderLocally(projectInfo, folderName, ipfsHash, extensionDataPath);
                 }
@@ -365,8 +366,8 @@ exports.PublishExtensionData = async (projectInfo, extensionName, data) => {
         if (extensionName != 'chat') {
             let extensionPath = data.extensionPath;
             let folderName = data.folderName;
-            let result = await exports.AddFolderToIpfs(extensionPath, folderName);
-            let ipfsHash = await exports.GetIpfsFolder('/' + path.basename(path.dirname(extensionPath)));
+            let result = await exports.AddFolderToIpfs(extensionPath, '/'+folderName);
+            let ipfsHash = await exports.GetIpfsFolder('/' + folderName);
 
             dbObject = {
                 hash: ipfsHash, //IPFS hash to the content
