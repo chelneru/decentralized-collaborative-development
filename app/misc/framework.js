@@ -220,7 +220,10 @@ exports.JoinProjectIPFS = (projectName, swarmKey, projectPath, bootstrapNodes) =
 exports.AddFolderToIpfs = async (folderPath, folderName) => {
     console.time("adding ipfs files");
     let files = exports.getAllFiles(folderPath);
+    debugger;
     try {
+        await global.node.node.files.rm(folderName,{recursive:true});
+
         await global.node.node.files.mkdir(folderName);
 
     } catch (e) {
@@ -229,7 +232,7 @@ exports.AddFolderToIpfs = async (folderPath, folderName) => {
     for await (const result of await global.node.node.add(files, {pin: true, wrapWithDirectory: true})) {
 
         let rootItem = "/ipfs/" + result.cid.toString();
-        console.info(result);
+        // console.info(result);
         console.info("Copying from " + rootItem + " to " + folderName);
         try {
             await global.node.node.files.cp(rootItem, folderName);
