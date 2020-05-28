@@ -26,8 +26,8 @@ router.get('/', async (req, res) => {
     if (global.projectInfo == undefined) {
         return res.redirect('/setup');
     }
-    if (global.node === undefined) {
-         p2pinterface.InitializeP2PSystem({
+    if (global.node === undefined && global.initialized_ipfs !== true) {
+         await p2pinterface.InitializeP2PSystem({
             localPath: path.join(global.projectInfo.localPath, '.jsipfs'),
             bootstrap: global.projectInfo.bootstrapNodes
         }, 'ipfs').then(function () {

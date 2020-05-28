@@ -22,25 +22,26 @@ class IpfsSystem {
         return ipfsClient('/ip4/127.0.0.1/tcp/5001');
     }
 
-    async createJsClient(options, private_network) {
+    async createJsClient(presetOptions, private_network) {
+        let options = {};
 
         if (private_network === true) {
             console.log('\x1b[36m%s\x1b[0m', 'Node initialized in private network.');
         } else {
             console.log('\x1b[36m%s\x1b[0m', 'Node initialized in public network.');
         }
-        if (options === undefined) {
-            options = {};
 
-        }
         if (private_network === true) {
             options.config = {
-                bootstrap: []
+                Bootstrap: []
             };
 
         }
-        if (options.bootstrap !== undefined) {
-            options.config.bootstrap = options.bootstrap;
+        if (presetOptions.bootstrap !== undefined) {
+            options.config.Bootstrap = presetOptions.bootstrap;
+        }
+        if (presetOptions.repo !== undefined) {
+            options.repo = presetOptions.repo;
         }
         options.relay = {
             "enabled": true,
@@ -48,14 +49,14 @@ class IpfsSystem {
                 "enabled": true
             }
         }
-        // options.config.Addresses= {
-        //     Swarm: [
-        //         '/ip4/0.0.0.0/tcp/4001',
-        //         '/ip4/127.0.0.1/tcp/4002/ws'
-        //     ],
-        //         API: '/ip4/127.0.0.1/tcp/5001',
-        //         Gateway: '/ip4/127.0.0.1/tcp/8080'
-        // };
+        options.config.Addresses= {
+            Swarm: [
+                '/ip4/0.0.0.0/tcp/4001',
+                '/ip4/127.0.0.1/tcp/4002/ws'
+            ],
+                API: '/ip4/127.0.0.1/tcp/5001',
+                Gateway: '/ip4/127.0.0.1/tcp/8080'
+        };
 
         if (!fs.existsSync(options.repo)) {
             fs.mkdirSync(options.repo);
@@ -121,8 +122,6 @@ class IpfsSystem {
                             }
                         }
                         break;
-
-
                 }
             } else {
                 // log self messages
@@ -133,20 +132,23 @@ class IpfsSystem {
         };
         try {
             await this.node.pubsub.subscribe(general_topic, receiveMsg);
-            console.log("\x1b[33m", ' subscribed to ', general_topic, "\x1b[0m")
+            console.log("\x1b[33m", 'subscribed to ', general_topic, "\x1b[0m")
         } catch (e) {
             console.log('Subscribe error : ', e.toString());
         }
+        const res = await this.node.bootstrap.list();
+        console.log(JSON.stringify(res,null, 2))
         //try to connect to bootstrap nodes
-        const peerInfos = await this.node.bootstrap.list();
-            for (const info of peerInfos) {
-                try {
-                    await this.node.swarm.connect(info.toString());
+        for (let resIter = 0; resIter < res.Peers.length; resIter++) {
+            try {
+                console.log('Tring to connect to ',res.Peers[resIter].toString());
+                await this.node.swarm.connect(res.Peers[resIter]);
 
-                } catch (e) {
-                    console.log('Unable to connect to ', info, ': ', e.toString());
-                }
+            } catch (e) {
+                console.log('Unable to connect to ', res.Peers[resIter], ': ', e.toString());
             }
+        }
+
 
         //get repo info
         this.repoInfo = await this.node.repo.stat();

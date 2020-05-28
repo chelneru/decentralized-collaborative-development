@@ -211,6 +211,7 @@ exports.JoinProjectIPFS = (projectName, swarmKey, projectPath, bootstrapNodes) =
         console.log("\x1b[41m", 'Unable to create project swarm key.');
         return {status: false};
     }
+    global.projectInfo = projectFile;
     global.appConfig.projects.push(projectFile);
     exports.SaveAppConfig();
 

@@ -2,7 +2,7 @@ let peerUpdateIntervalId = null;
 
 $(document).ready(function () {
     UpdatePeerInfo();
-    UpdatePeerInitialInfo();
+    setTimeout(UpdatePeerInitialInfo,2000);
     $('.publish-repository').on('click', function () {
         let project_id = $('.project_id').val();
         PublishRepository(project_id);

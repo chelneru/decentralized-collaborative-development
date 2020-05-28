@@ -8,6 +8,10 @@ exports.InitializeP2PSystem = async (projectInfo, p2psystem) => {
     console.time("Initialize IPFS node");
     switch (p2psystem) {
         case 'ipfs':
+            if(!Array.isArray(projectInfo.bootstrap)) {
+                projectInfo.bootstrap = JSON.parse(projectInfo.bootstrap);
+            }
+            global.initialized_ipfs = true;
             global.node = await IpfsSystem.create({
                 repo: projectInfo.localPath,
                 bootstrap: projectInfo.bootstrap
