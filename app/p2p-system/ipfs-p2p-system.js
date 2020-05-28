@@ -42,6 +42,12 @@ class IpfsSystem {
         if (options.bootstrap !== undefined) {
             options.config.bootstrap = options.bootstrap;
         }
+        options.relay = {
+            "enabled": true,
+            "hop": {
+                "enabled": true
+            }
+        }
         // options.config.Addresses= {
         //     Swarm: [
         //         '/ip4/0.0.0.0/tcp/4001',
@@ -107,9 +113,9 @@ class IpfsSystem {
                 switch (res.status) {
                     case 'project_info':
                         console.log('received project info');
-                        if(global.joining_project === true) {
+                        if (global.joining_project === true) {
                             let join_result = framework.AddProjectIPFS(res.name, res.databases, res.modules);
-                            if(join_result.status === true) {
+                            if (join_result.status === true) {
                                 console.log('Successfully added project data');
                                 global.joining_project = false;
                             }
@@ -131,8 +137,18 @@ class IpfsSystem {
         } catch (e) {
             console.log('Subscribe error : ', e.toString());
         }
-        //display swarm addresses
-        this.localAddrs = await this.node.swarm.localAddrs();
+        //try to connect to bootstrap nodes
+        const peerInfos = await this.node.swarm.addrs()
+            for (const info of peerInfos) {
+                try {
+                    for (const addr of info.addrs) {
+                        await this.node.swarm.connect(addr.toString());
+                    }
+                } catch (e) {
+                    console.log('Unable to connect to ', info.id, ': ', e.toString());
+                }
+            }
+
         //get repo info
         this.repoInfo = await this.node.repo.stat();
         this.repoInfo = this.repoInfo.repoPath;
@@ -141,34 +157,34 @@ class IpfsSystem {
         this.node.libp2p.on('peer:connect', async (peer) => {
             // await selfNode.node.swarm.connect(peer.multiaddrs._multiaddrs[0]+'/ipfs/'+peer.id.id);
             let swarm_peers = await selfNode.GetConnectedPeers();
-            if(global.joining_project !== true) {
-            console.log('swarm peers ', JSON.stringify(swarm_peers));
-            if (swarm_peers.length > 0) {
+            if (global.joining_project !== true) {
+                console.log('swarm peers ', JSON.stringify(swarm_peers));
+                if (swarm_peers.length > 0) {
 
-                let message = JSON.stringify({
-                    name: global.projectInfo.name,
-                    modules: global.projectInfo.modules,
-                    status: 'project_info',
-                    databases: p2pinterface.GetCurrentProjectDatabases()
-                });
-                setTimeout(async function () {
-                    let topic_peers = await selfNode.node.pubsub.peers(general_topic);
-                    // console.log('general topic peers ', JSON.stringify(topic_peers));
-                    if (topic_peers.length > 0) {
-                        await selfNode.node.pubsub.publish(general_topic, Buffer.from(message), (err) => {
-                            if (err) {
-                                console.error('error sending project info: ', err)
-                            } else {
-                                console.log('Sent project info.')
-                            }
-                        });
-                        console.log(selfNode.id, ' sent message', message);
-                    }
+                    let message = JSON.stringify({
+                        name: global.projectInfo.name,
+                        modules: global.projectInfo.modules,
+                        status: 'project_info',
+                        databases: p2pinterface.GetCurrentProjectDatabases()
+                    });
+                    setTimeout(async function () {
+                        let topic_peers = await selfNode.node.pubsub.peers(general_topic);
+                        // console.log('general topic peers ', JSON.stringify(topic_peers));
+                        if (topic_peers.length > 0) {
+                            await selfNode.node.pubsub.publish(general_topic, Buffer.from(message), (err) => {
+                                if (err) {
+                                    console.error('error sending project info: ', err)
+                                } else {
+                                    console.log('Sent project info.')
+                                }
+                            });
+                            console.log(selfNode.id, ' sent message', message);
+                        }
 
 
-                }, 3000)
+                    }, 3000)
 
-            }
+                }
             }
         });
         return this;
