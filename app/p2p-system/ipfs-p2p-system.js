@@ -138,14 +138,13 @@ class IpfsSystem {
             console.log('Subscribe error : ', e.toString());
         }
         //try to connect to bootstrap nodes
-        const peerInfos = await this.node.swarm.addrs()
+        const peerInfos = await this.node.bootstrap.list();
             for (const info of peerInfos) {
                 try {
-                    for (const addr of info.addrs) {
-                        await this.node.swarm.connect(addr.toString());
-                    }
+                    await this.node.swarm.connect(info.toString());
+
                 } catch (e) {
-                    console.log('Unable to connect to ', info.id, ': ', e.toString());
+                    console.log('Unable to connect to ', info, ': ', e.toString());
                 }
             }
 
