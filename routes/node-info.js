@@ -12,8 +12,9 @@ router.post('/initial-info', async (req, res) => {
     let swarmKeyContents = p2pinterface.GetSwarmKeyContents(global.projectInfo);
     if (ipfsNode !== undefined && global.projectInfo !== undefined) {
         node_id = ipfsNode.id;
-        for (let addrs of ipfsNode.localAddrs) {
-            localAddrsString.push(addrs.toString() + '/ipfs/' + ipfsNode.id);
+        let node_id_result =  await ipfsNode.node.id();
+        for (let addrs of node_id_result.addresses) {
+            localAddrsString.push(addrs.toString());
         }
         projectName = global.projectInfo.name;
     }   

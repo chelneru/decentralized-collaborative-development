@@ -42,14 +42,14 @@ class IpfsSystem {
         if (options.bootstrap !== undefined) {
             options.config.bootstrap = options.bootstrap;
         }
-        options.config.Addresses= {
-            Swarm: [
-                '/ip4/0.0.0.0/tcp/4001',
-                '/ip4/127.0.0.1/tcp/4002/ws'
-            ],
-                API: '/ip4/127.0.0.1/tcp/5001',
-                Gateway: '/ip4/127.0.0.1/tcp/8080'
-        };
+        // options.config.Addresses= {
+        //     Swarm: [
+        //         '/ip4/0.0.0.0/tcp/4001',
+        //         '/ip4/127.0.0.1/tcp/4002/ws'
+        //     ],
+        //         API: '/ip4/127.0.0.1/tcp/5001',
+        //         Gateway: '/ip4/127.0.0.1/tcp/8080'
+        // };
 
         if (!fs.existsSync(options.repo)) {
             fs.mkdirSync(options.repo);
@@ -62,7 +62,7 @@ class IpfsSystem {
         options.EXPERIMENTAL = {
             pubsub: true
         };
-        options.silent = true; //disable console cluttering
+        options.silent = false; //disable console cluttering
         options.libp2p = {};
         options.libp2p = {
             config: {
