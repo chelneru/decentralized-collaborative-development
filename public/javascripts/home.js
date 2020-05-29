@@ -109,7 +109,7 @@ function UpdatePeerInitialInfo() {
             if (response.swarmKeyContents !== undefined) {
                 $('.swarm-key-row .row-value').text(response.swarmKeyContents);
             }
-
+            setInterval(UpdatePeerInitialInfo,10000);
         }
         ,
         error(jqXHR, status, errorThrown) {

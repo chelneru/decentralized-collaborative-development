@@ -169,7 +169,7 @@ exports.AddProjectIPFS = async (projectID,projectName, databases, modules) => {
     //update path
     global.projectInfo.localPath = global.projectInfo.localPath.split(path.delimiter);
     global.projectInfo.localPath[global.projectInfo.localPath.length-1] = projectName;
-    global.projectInfo.localPath = path.join(global.projectInfo.localPath);
+    global.projectInfo.localPath = path.join(...global.projectInfo.localPath);
 
 
     for (let dbIter = 0; dbIter < databases.length; dbIter++) {
