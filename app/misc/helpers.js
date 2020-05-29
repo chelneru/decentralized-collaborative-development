@@ -17,8 +17,7 @@ exports.InitializeConfig = (repoPath, node, name, email) => {
     try {
         if (fs.existsSync(repoPath + '/config.json')) {
             return JSON.parse(fs.readFileSync(repoPath + '/config.json').toString());
-        }
-        else {
+        } else {
             let config = {};
             name = 'Alin'; //TODO add on register to retrieve name
             email = 'alin.panainte95@gmail.com'; //TODO add on register to retrieve email
@@ -43,6 +42,23 @@ exports.InitializeConfig = (repoPath, node, name, email) => {
     }
 
 };
+exports.PrepareMultiAddresses = async (ipfsNode) => {
+    const publicIp = require('public-ip');
+    let result = [];
+    if (ipfsNode !== undefined) {
+        let node_id_result = await ipfsNode.id();
+        for (let addrs of node_id_result.addresses) {
+            let addrString = addrs.toString().split('/');
+            addrString[2] = await publicIp.v4();
+            addrString = addrString.join('/');
+            let index = result.findIndex(x => x === addrString)
+            if (index === -1) {
+                result.push(addrString);
+            }
+        }
+    }
+    return result;
+}
 /*
 * TODO This file will be encrypted with ipfs node's public key
 * */
@@ -52,8 +68,7 @@ exports.InitializeNodeInfo = async (repoPath, node) => {
             //file exists so we return it instead
             let data = fs.readFileSync(repoPath + '/nodeinfo');
             return JSON.parse(data.toString());
-        }
-        else {
+        } else {
             let other_nodes = [];
             fs.writeFile(repoPath + '/nodeinfo', JSON.stringify(other_nodes), function (err) {
                 if (err) {
@@ -63,12 +78,12 @@ exports.InitializeNodeInfo = async (repoPath, node) => {
             return other_nodes;
         }
     } catch (err) {
-        console.log('Error checking file ' + repoPath + '/nodeinfo : ',err);
+        console.log('Error checking file ' + repoPath + '/nodeinfo : ', err);
 
     }
 };
 
-exports.UpdateNodeInfoFile = async ( repoPath, node) => {
+exports.UpdateNodeInfoFile = async (repoPath, node) => {
     try {
         if (fs.existsSync(repoPath + '/nodeinfo')) {
             fs.writeFile(repoPath + '/nodeinfo', JSON.stringify(node.other_nodes), function (err) {
@@ -149,7 +164,7 @@ exports.UpdateConfig = async (repoPath, node) => {
     }
 
 };
-exports.randomInt = (low, high) =>{
+exports.randomInt = (low, high) => {
     return Math.floor(Math.random() * (high - low + 1) + low)
 }
 exports.isEmptyObject = function (obj) {

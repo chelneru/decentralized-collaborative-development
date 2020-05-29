@@ -44,6 +44,7 @@
     "jest": "^25.1.0",
     "libp2p": "^0.27.7",
     "peer-info": "^0.17.5",
+    "public-ip": "^4.0.1",
     "recursive-readdir-async": "^1.1.6",
     "stream-to-it": "^0.2.0",
     "supertest": "^4.0.2"

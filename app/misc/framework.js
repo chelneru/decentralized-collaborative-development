@@ -161,30 +161,28 @@ exports.GetProject = (projectId) => {
 }
 
 exports.AddProjectIPFS = (projectName, databases, modules) => {
-    let index = global.appConfig.projects.findIndex(i => i.name === projectName);
-    if (index >= 0) {
-        global.appConfig.projects[index].modules = [].concat(modules);
-        for (let dbIter = 0; dbIter < databases.length; dbIter++) {
-            try {
-                if (databases[dbIter].content !== undefined) {
-                    global.appConfig.projects[index][databases[dbIter].name] = JSON.parse(databases[dbIter].content);
-                } else {
-                    global.appConfig.projects[index][databases[dbIter].name] = {name: databases[dbIter].name};
-                }
-            } catch (e) {
-                console.log('Unable to parse the JSON for ', databases[dbIter].name, '. The content is "', databases[dbIter].content, '"')
+    let projectIndex = global.appConfig.projects.findIndex(i => i.id === global.projectInfo.id)
+    global.projectInfo.modules = modules;
+    global.projectInfo.id = projectID;
+    global.projectInfo.name = projectName;
+    for (let dbIter = 0; dbIter < databases.length; dbIter++) {
+        try {
+            if (databases[dbIter].content !== undefined) {
+                global.projectInfo[databases[dbIter].name] = JSON.parse(databases[dbIter].content);
+            } else {
+                global.projectInfo[databases[dbIter].name] = {name: databases[dbIter].name};
             }
+        } catch (e) {
+            console.log('Unable to parse the JSON for ', databases[dbIter].name, '. The content is "', databases[dbIter].content, '"')
         }
-        global.projectInfo = global.appConfig.projects[index];
-        exports.SaveAppConfig();
-        return {status: true, message: 'success'};
-
-    } else {
-        return {status: false, message: 'project not found'};
     }
+    global.appConfig.projects[projectIndex] = global.projectInfo;
+    exports.SaveAppConfig();
+    return {status: true, message: 'success'};
+
 
 }
-exports.JoinProjectIPFS = (projectName, swarmKey, projectPath, bootstrapNodes) => {
+exports.JoinProjectIPFS = ( swarmKey, projectPath, bootstrapNodes) => {
     fs.mkdirSync(path.join(projectPath, projectName), {recursive: true});
     fs.mkdirSync(path.join(projectPath, projectName, '/repository'), {recursive: true});
     if (!fs.existsSync(path.join(projectPath, projectName))) {
@@ -193,7 +191,8 @@ exports.JoinProjectIPFS = (projectName, swarmKey, projectPath, bootstrapNodes) =
         return {status: false};
     }
     let projectFile = {
-        name: projectName,
+        id:global.appConfig.projectIdCounter,
+        name: "tempProject",
         author: "",
         p2psystem: "ipfs",
         localPath: path.join(projectPath, projectName),
@@ -217,6 +216,7 @@ exports.JoinProjectIPFS = (projectName, swarmKey, projectPath, bootstrapNodes) =
         return {status: false};
     }
     global.projectInfo = projectFile;
+    global.appConfig.projectIdCounter++;
     global.appConfig.projects.push(projectFile);
     exports.SaveAppConfig();
 

@@ -2,27 +2,25 @@ var express = require('express');
 var router = express.Router();
 const p2pinterface = require('../app/p2p-system/interface')
 const framework = require('../app/misc/framework');
+const helpers = require('../app/misc/helpers');
 /* GET home page. */
 router.post('/initial-info', async (req, res) => {
 
     let ipfsNode = global.node;
     let node_id = "";
-    let localAddrsString = [];
     let projectName = "";
+    let localAddrsString = [];
     let swarmKeyContents = p2pinterface.GetSwarmKeyContents(global.projectInfo);
     if (ipfsNode !== undefined && global.projectInfo !== undefined) {
+        localAddrsString = await helpers.PrepareMultiAddresses(ipfsNode.node);
         node_id = ipfsNode.id;
-        let node_id_result =  await ipfsNode.node.id();
-        for (let addrs of node_id_result.addresses) {
-            localAddrsString.push(addrs.toString());
-        }
         projectName = global.projectInfo.name;
-    }   
+    }
     res.json({
         peer_id: node_id,
         localAddrs: JSON.stringify(JSON.stringify(localAddrsString)),
         project_name: projectName,
-        swarmKeyContents:swarmKeyContents
+        swarmKeyContents: swarmKeyContents
     });
 
 });
