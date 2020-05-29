@@ -115,7 +115,7 @@ class IpfsSystem {
                     case 'project_info':
                         console.log('received project info');
                         if (global.joining_project === true) {
-                            let join_result = await framework.AddProjectIPFS(res.id, res.name, res.databases, res.modules);
+                            let join_result = await framework.AddProjectIPFS(res.id, res.databases, res.modules);
                             if (join_result.status === true) {
                                 console.log('Successfully added project data');
                                 global.joining_project = false;

@@ -160,17 +160,10 @@ exports.GetProject = (projectId) => {
     return null;
 }
 
-exports.AddProjectIPFS = async (projectID,projectName, databases, modules) => {
+exports.AddProjectIPFS = async (projectID, databases, modules) => {
     let projectIndex = global.appConfig.projects.findIndex(i => i.id === global.projectInfo.id)
     global.projectInfo.modules = modules;
     global.projectInfo.id = projectID;
-    global.projectInfo.name = projectName;
-
-    //update path
-    global.projectInfo.localPath = global.projectInfo.localPath.split(path.delimiter);
-    global.projectInfo.localPath[global.projectInfo.localPath.length-1] = projectName;
-    global.projectInfo.localPath = path.join(...global.projectInfo.localPath);
-
 
     for (let dbIter = 0; dbIter < databases.length; dbIter++) {
         try {
@@ -183,7 +176,7 @@ exports.AddProjectIPFS = async (projectID,projectName, databases, modules) => {
             console.log('Unable to parse the JSON for ', databases[dbIter].name, '. The content is "', databases[dbIter].content, '"')
         }
     }
-    await p2pinterface.AddUserToDatabase(result.projectInfo, global.appConfig.user.name, global.appConfig.user.email, global.appConfig.user.password, global.node.id);
+    await p2pinterface.AddUserToDatabase(global.projectInfo, global.appConfig.user.name, global.appConfig.user.email, global.appConfig.user.password, global.node.id);
 
     global.appConfig.projects[projectIndex] = global.projectInfo;
     exports.SaveAppConfig();
@@ -191,8 +184,7 @@ exports.AddProjectIPFS = async (projectID,projectName, databases, modules) => {
 
 
 }
-exports.JoinProjectIPFS = (swarmKey, projectPath, bootstrapNodes) => {
-    let projectName = "tempProject";
+exports.JoinProjectIPFS = (projectName,swarmKey, projectPath, bootstrapNodes) => {
 
     fs.mkdirSync(path.join(projectPath, projectName), {recursive: true});
     fs.mkdirSync(path.join(projectPath, projectName, '/repository'), {recursive: true});

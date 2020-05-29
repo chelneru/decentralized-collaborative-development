@@ -43,6 +43,7 @@
     "it-pipe": "^1.1.0",
     "jest": "^25.1.0",
     "libp2p": "^0.27.7",
+    "ncp": "^2.0.0",
     "peer-info": "^0.17.5",
     "public-ip": "^4.0.1",
     "recursive-readdir-async": "^1.1.6",
