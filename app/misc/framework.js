@@ -191,7 +191,7 @@ exports.AddProjectIPFS = async (projectID,projectName, databases, modules) => {
 
 
 }
-exports.JoinProjectIPFS = ( swarmKey, projectPath, bootstrapNodes) => {
+exports.JoinProjectIPFS = (swarmKey, projectPath, bootstrapNodes) => {
     let projectName = "tempProject";
 
     fs.mkdirSync(path.join(projectPath, projectName), {recursive: true});
