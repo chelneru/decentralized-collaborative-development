@@ -115,7 +115,7 @@ class IpfsSystem {
                     case 'project_info':
                         console.log('received project info');
                         if (global.joining_project === true) {
-                            let join_result = framework.AddProjectIPFS(res.name, res.databases, res.modules);
+                            let join_result = framework.AddProjectIPFS(res.id, res.name, res.databases, res.modules);
                             if (join_result.status === true) {
                                 console.log('Successfully added project data');
                                 global.joining_project = false;
@@ -164,6 +164,7 @@ class IpfsSystem {
 
                     let message = JSON.stringify({
                         name: global.projectInfo.name,
+                        id: global.projectInfo.id,
                         modules: global.projectInfo.modules,
                         status: 'project_info',
                         databases: p2pinterface.GetCurrentProjectDatabases()
