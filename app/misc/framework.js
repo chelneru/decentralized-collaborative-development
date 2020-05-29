@@ -86,7 +86,6 @@ exports.CreateProjectInitialFiles = (projectPath, projectName, modules, p2psyste
         console.log("\x1b[41m", 'Unable to create project config file.');
         return {status: false};
     }
-
     //project creation is successful
     global.appConfig.projectIdCounter++;
     global.appConfig.projects.push(projectFile);
@@ -187,6 +186,12 @@ exports.AddProjectIPFS = (projectName, databases, modules) => {
 }
 exports.JoinProjectIPFS = (projectName, swarmKey, projectPath, bootstrapNodes) => {
     fs.mkdirSync(path.join(projectPath, projectName), {recursive: true});
+    fs.mkdirSync(path.join(projectPath, projectName, '/repository'), {recursive: true});
+    if (!fs.existsSync(path.join(projectPath, projectName))) {
+
+        console.log("\x1b[41m", 'Unable to create project directory.');
+        return {status: false};
+    }
     let projectFile = {
         name: projectName,
         author: "",
