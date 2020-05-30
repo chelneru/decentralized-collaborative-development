@@ -31,7 +31,6 @@ exports.InitializeOrbitInstance = async (projectPath) => {
 }
 
 exports.GetCurrentProjectDatabases = () => {
-    let stringify = require('json-stable-stringify')
     let databases = [];
     //prepare databases
     if (global.projectInfo.usersDB !== undefined) {
