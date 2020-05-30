@@ -35,19 +35,19 @@ exports.GetCurrentProjectDatabases = () => {
     let databases = [];
     //prepare databases
     if (global.projectInfo.usersDB !== undefined) {
-        databases.push({name: 'usersDB', content: stringify(global.projectInfo.usersDB)});
+        databases.push({name: 'usersDB', address: global.projectInfo.usersDB.address});
     }
     if (global.projectInfo.repoDB !== undefined) {
-        databases.push({name: 'repoDB', content: stringify(global.projectInfo.repoDB)});
+        databases.push({name: 'repoDB', address: global.projectInfo.repoDB.address});
     }
     if (global.projectInfo.sharedDataDB !== undefined) {
-        databases.push({name: 'sharedDataDB', content: stringify(global.projectInfo.sharedDataDB)});
+        databases.push({name: 'sharedDataDB', address: global.projectInfo.sharedDataDB.address});
     }
     for (let modIter = 0; modIter < global.projectInfo.modules.length; modIter++) {
         if (global.projectInfo.modules[modIter].hasDB === true) {
             databases.push({
                 name: global.projectInfo.modules[modIter].name + 'DB',
-                content: stringify(global.projectInfo[global.projectInfo.modules[modIter].name + 'DB'])
+                address: global.projectInfo[global.projectInfo.modules[modIter].name + 'DB'].address
             });
 
         }

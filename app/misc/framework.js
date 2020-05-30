@@ -167,8 +167,14 @@ exports.AddProjectIPFS = async (projectID, databases, modules) => {
 
     for (let dbIter = 0; dbIter < databases.length; dbIter++) {
         try {
-            if (databases[dbIter].content !== undefined) {
-                global.projectInfo[databases[dbIter].name] = JSON.parse(databases[dbIter].content);
+            if (databases[dbIter].address !== undefined) {
+                let db = await global.orbit.open(databases[dbIter].address,{create:true});
+                global.projectInfo[databases[dbIter].name] = {};
+                global.projectInfo[databases[dbIter].name].id = db.identity.id;
+                global.projectInfo[databases[dbIter].name].publicKey = db.identity.publicKey;
+                global.projectInfo[databases[dbIter].name].signatures = db.identity.signatures;
+                global.projectInfo[databases[dbIter].name].address = db.address.toString();
+
             } else {
                 global.projectInfo[databases[dbIter].name] = {name: databases[dbIter].name};
             }
@@ -177,7 +183,6 @@ exports.AddProjectIPFS = async (projectID, databases, modules) => {
         }
     }
     await p2pinterface.AddUserToDatabase(global.projectInfo, global.appConfig.user.name, global.appConfig.user.email, global.appConfig.user.password, global.node.id);
-
     global.appConfig.projects[projectIndex] = global.projectInfo;
     exports.SaveAppConfig();
     return {status: true, message: 'success'};
