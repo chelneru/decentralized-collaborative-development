@@ -44,10 +44,13 @@ exports.GetCurrentProjectDatabases = () => {
     }
     for (let modIter = 0; modIter < global.projectInfo.modules.length; modIter++) {
         if (global.projectInfo.modules[modIter].hasDB === true) {
-            databases.push({
-                name: global.projectInfo.modules[modIter].name + 'DB',
-                address: global.projectInfo[global.projectInfo.modules[modIter].name + 'DB'].address
-            });
+            let dbObject = {};
+            dbObject.name = global.projectInfo.modules[modIter].name + 'DB';
+            if(global.projectInfo[global.projectInfo.modules[modIter].name + 'DB'] !== undefined) {
+                dbObject.address = global.projectInfo[global.projectInfo.modules[modIter].name + 'DB'].address;
+            }
+            databases.push(dbObject);
+
 
         }
     }
