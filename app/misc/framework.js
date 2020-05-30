@@ -195,7 +195,7 @@ exports.JoinProjectIPFS = (projectName,swarmKey, projectPath, bootstrapNodes) =>
     }
     let projectFile = {
         id:global.appConfig.projectIdCounter,
-        name: "tempProject",
+        name: projectName,
         author: "",
         p2psystem: "ipfs",
         localPath: path.join(projectPath, projectName),

@@ -31,22 +31,23 @@ exports.InitializeOrbitInstance = async (projectPath) => {
 }
 
 exports.GetCurrentProjectDatabases = () => {
+    let stringify = require('json-stable-stringify')
     let databases = [];
     //prepare databases
     if (global.projectInfo.usersDB !== undefined) {
-        databases.push({name: 'usersDB', content: JSON.stringify(global.projectInfo.usersDB)});
+        databases.push({name: 'usersDB', content: stringify(global.projectInfo.usersDB)});
     }
     if (global.projectInfo.repoDB !== undefined) {
-        databases.push({name: 'repoDB', content: JSON.stringify(global.projectInfo.repoDB)});
+        databases.push({name: 'repoDB', content: stringify(global.projectInfo.repoDB)});
     }
     if (global.projectInfo.sharedDataDB !== undefined) {
-        databases.push({name: 'sharedDataDB', content: JSON.stringify(global.projectInfo.sharedDataDB)});
+        databases.push({name: 'sharedDataDB', content: stringify(global.projectInfo.sharedDataDB)});
     }
     for (let modIter = 0; modIter < global.projectInfo.modules.length; modIter++) {
         if (global.projectInfo.modules[modIter].hasDB === true) {
             databases.push({
                 name: global.projectInfo.modules[modIter].name + 'DB',
-                content: JSON.stringify(global.projectInfo[global.projectInfo.modules[modIter].name + 'DB'])
+                content: stringify(global.projectInfo[global.projectInfo.modules[modIter].name + 'DB'])
             });
 
         }

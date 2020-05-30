@@ -51,10 +51,11 @@ router.get('/', async (req, res) => {
 
     setInterval(async function () {
         if(global.orbit !== undefined) {
-            framework.CheckOnlineStatus().then(function () {
+            // framework.CheckOnlineStatus().then(function () {
             p2pinterface.ShareUsers(global.projectInfo);
-            });
+            // });
         }
+
         }
     ,3000);
 
