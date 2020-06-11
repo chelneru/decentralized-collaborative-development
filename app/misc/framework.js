@@ -4,8 +4,10 @@ const fs = require('fs');
 const moment = require('moment');
 const path = require('path');
 const p2pinterface = require('../p2p-system/interface')
+const {globSource} = require('ipfs');
+
 exports.LoadAppConfig = () => {
-    global.userPath = path.join(os.homedir(), 'distcollab');
+    global.userPath = path.join(os.homedir(), 'colligo');
     let configPath = global.userPath + '/config';
 
     try {
@@ -18,7 +20,7 @@ exports.LoadAppConfig = () => {
 };
 
 exports.CheckAppConfig = () => {
-    global.userPath = path.join(os.homedir(), 'distcollab');
+    global.userPath = path.join(os.homedir(), 'colligo');
     let configPath = path.join(global.userPath, 'config');
     return fs.existsSync(configPath);
 }
@@ -34,7 +36,7 @@ exports.SaveAppConfig = () => {
     }
 }
 exports.CreateAppConfig = () => {
-    global.userPath = path.join(os.homedir(), 'distcollab');
+    global.userPath = path.join(os.homedir(), 'colligo');
 
     if (!fs.existsSync(global.userPath)) {
         fs.mkdirSync(global.userPath);
@@ -231,30 +233,22 @@ exports.JoinProjectIPFS = (projectName,swarmKey, projectPath, bootstrapNodes) =>
 
     return {status: true};
 };
-exports.AddFolderToIpfs = async (folderPath, folderName) => {
+exports.AddFolderToIpfs = async (folderPath) => {
     console.time("adding ipfs files");
-    let files = exports.getAllFiles(folderPath);
+    let files = [];
     try {
-        await global.node.node.files.mkdir(folderName);
-
-    } catch (e) {
-        console.log('unable to create repo ipfs folder:', e.toString());
-    }
-    for await (const result of await global.node.node.add(files, {pin: true, wrapWithDirectory: true})) {
-
-        let rootItem = "/ipfs/" + result.cid.toString();
-        console.info(result);
-        console.info("Copying from " + rootItem + " to " + folderName);
-        try {
-            await global.node.node.files.cp(rootItem, folderName);
-        } catch (e) {
-            console.log('Unable to ipfs copy:', e.toString());
-
+        for await (const file of ipfs.add(globSource(folderPath, {
+            recursive: true
+        }))) {
+            files.push(file);
         }
-
+    } catch (e) {
+        console.log('Unable to add folder to IPFS:', e.toString());
     }
-    console.timeEnd("adding ipfs files");
-    return {status: true};
+    return {
+        folder: folderPath,
+        files: files,
+    }
 };
 
 exports.GetIpfsFolder = async (folderPath) => {
