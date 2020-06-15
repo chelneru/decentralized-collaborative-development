@@ -249,5 +249,30 @@ exports.GetSwarmKeyContents = (projectInfo) => {
 
 exports.ShareUsers = async (projectInfo) => {
 
-    return exports.PublishSharedData(projectInfo,'framework',global.users);
+    let shared_data = await exports.RetrieveSharedData(projectInfo);
+    let users_list = shared_data.content.find(obj => obj.name ==="framework");
+    let identical = true;
+    //compare existing users lists with the one from the shared data database
+    if(users_list !== undefined  && users_list.data !== undefined){
+    for(let iter=0;iter<users_list.data.length; iter++) {
+        if(global.users[iter] !== undefined && users_list.data[iter] !== undefined ) {
+            //check object equality
+            if(global.users[iter].name != users_list.data[iter].name ||
+                global.users[iter].email != users_list.data[iter].email ||
+                global.users[iter].ipfsId != users_list.data[iter].ipfsId
+            ) {
+                identical = false;
+                break;
+            }
+        }
+        else {
+            identical = false;
+            break;
+        }
+    }
+    if(identical === false) {
+        console.log('The users list has been updated!');
+        return exports.PublishSharedData(projectInfo,'framework',global.users);
+    }
+    }
 }

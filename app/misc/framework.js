@@ -99,6 +99,23 @@ exports.CreateProjectInitialFiles = (projectPath, projectName, modules, p2psyste
 exports.IsAuthor = (projectInfo) => {
     return global.identity.name == projectInfo.author;
 }
+exports.RunBackgroundTasks = async () => {
+
+    if (global.background_task_running === undefined || global.background_task_running === false) {
+
+        console.log('Starting periodic update of users list')
+        setInterval(async function () {
+                if (global.orbit !== undefined) {
+                    exports.CheckOnlineStatus().then(async function () {
+                    await p2pinterface.ShareUsers(global.projectInfo);
+                    });
+                }
+
+            }
+            , 3000);
+        global.background_task_running = true;
+    }
+}
 exports.CreateProject = async (projectPath, projectName, modules, p2psystem) => {
     let result = exports.CreateProjectInitialFiles(projectPath, projectName, modules, p2psystem);
 
@@ -233,7 +250,7 @@ exports.JoinProjectIPFS = (projectName,swarmKey, projectPath, bootstrapNodes) =>
 
     return {status: true};
 };
-exports.AddFolderToIpfs = async (folderPath) => {
+exports.AddFolderToIpfs = async (ipfs,folderPath) => {
     console.time("adding ipfs files");
     let files = [];
     try {
@@ -341,12 +358,13 @@ exports.RetrieveExtensionData = async (projectInfo, extensionName, data) => {
                 .collect()
                 .map((e) => e.payload.value);
 
-            if (result !== null) {
-                let ipfsHash = result[0].hash;// get latest hash
-                if (ipfsHash.length > 0) {
-                    await exports.SaveIpfsFolderLocally(projectInfo, folderName, ipfsHash, extensionDataPath);
+            if (result !== null && result[0] !== undefined) {
+                let content = result[0].content;// get latest hash
+                if (content.length > 0) {
+                    await exports.SaveIpfsFolderLocally(global.node.node, content.files, content.folder, extensionDataPath);
                 }
             } else {
+                console.log(JSON.stringify(result));
                 return {status: false, message: 'hash not found'};
             }
             return {status: true};
@@ -374,11 +392,10 @@ exports.PublishExtensionData = async (projectInfo, extensionName, data) => {
         if (extensionName != 'chat') {
             let extensionPath = data.extensionPath;
             let folderName = data.folderName;
-            let result = await exports.AddFolderToIpfs(extensionPath, '/'+folderName);
-            let ipfsHash = await exports.GetIpfsFolder('/' + folderName);
+            let result = await exports.AddFolderToIpfs(global.node.node,extensionPath, '/'+folderName);
 
             dbObject = {
-                hash: ipfsHash, //IPFS hash to the content
+                content: result,
                 author: {
                     name: global.identity.name,
                     ipfsId: global.node.id
@@ -425,21 +442,21 @@ exports.GetNetworkUsers = async (projectInfo) => {
 exports.CheckOnlineStatus = async () => {
     let users = await exports.GetNetworkUsers(global.projectInfo);
     try {
-        for (let iterUser = 0; iterUser < users.length; iterUser++) {
-            if (global.node.id !== users[iterUser].ipfsId) {
-                for await (const res of global.node.node.ping(users[iterUser].ipfsId)) {
-                    if (res.time) {
-                        users[iterUser].status = 'online';
-                    } else {
-                        users[iterUser].status = 'offline';
-                    }
-                }
-            } else {
-                //this is own ide
-                users[iterUser].status = 'online';
-
-            }
-        }
+        // for (let iterUser = 0; iterUser < users.length; iterUser++) {
+        //     if (global.node.id !== users[iterUser].ipfsId) {
+        //         for await (const res of global.node.node.ping(users[iterUser].ipfsId)) {
+        //             if (res.time) {
+        //                 users[iterUser].status = 'online';
+        //             } else {
+        //                 users[iterUser].status = 'offline';
+        //             }
+        //         }
+        //     } else {
+        //         //this is own ide
+        //         users[iterUser].status = 'online';
+        //
+        //     }
+        // }
         global.users = users;
     } catch (e) {
         console.log('Error check users status', e.toString());
@@ -447,11 +464,10 @@ exports.CheckOnlineStatus = async () => {
 }
 
 exports.PublishLocalRepository = async (projectInfo) => {
-    let result = await exports.AddFolderToIpfs(path.join(projectInfo.localPath, 'repository'), '/repository');
-    let ipfsHash = await exports.GetIpfsFolder('/repository');
+    let result = await exports.AddFolderToIpfs(global.node.node,path.join(projectInfo.localPath, 'repository'));
 
     let dbObject = {
-        hash: ipfsHash, //IPFS hash to the content
+        content: result, //IPFS hash to the content
         author: {
             name: global.identity.name,
             ipfsId: global.node.id
@@ -461,29 +477,35 @@ exports.PublishLocalRepository = async (projectInfo) => {
     await exports.AppendRepoDB(projectInfo, dbObject);
     return {status: true, message: ''};
 };
-exports.SaveIpfsFolderLocally = async (projectInfo, parentFolder, ipfsPath, outputPath) => {
-    console.log('Saving file(s)', ipfsPath);
+exports.SaveIpfsFolderLocally = async (ipfs,files, parentFolder, outputPath) => {
+    console.log('Saving file(s)');
 
     const toIterable = require('stream-to-it')
     const pipe = require('it-pipe')
     const {map} = require('streaming-iterables')
-    for await (const file of global.node.node.get(ipfsPath)) {
-        if (file.path.indexOf('/' + parentFolder) > -1) {
-            //remove hash folders for a nice folder location
+    for (let fileIter = 0; fileIter < files.length; fileIter++) {
+        files[fileIter].path =  files[fileIter].path.replace(path.basename(parentFolder)+'/','');
+        files[fileIter].path =  files[fileIter].path.replace(path.basename(parentFolder),'');
+        for await (const fileResult of await ipfs.get(files[fileIter].cid.toString())) {
 
-            file.path = file.path.substring(file.path.indexOf('/' + parentFolder) + ('/' + parentFolder).length, file.path.length);
-            const fullFilePath = path.join(outputPath, file.path)
-
-            if (file.content) {
-                await fs.promises.mkdir(path.join(outputPath, path.dirname(file.path)), {recursive: true})
-                await pipe(
-                    file.content,
-                    map(chunk => chunk.slice()), // BufferList to Buffer
-                    toIterable.sink(fs.createWriteStream(fullFilePath))
-                )
-            } else {
-                // this is a dir
-                await fs.promises.mkdir(fullFilePath, {recursive: true})
+            if (files[fileIter].path.length > 0 ) {
+                //remove hash folders for a nice folder location
+                const fullFilePath = path.join(outputPath, files[fileIter].path);
+                if (files[fileIter].mode === 420) { // check if its folder of file
+                    if(!fs.existsSync(path.join(outputPath, path.dirname(files[fileIter].path)))) {
+                    await fs.promises.mkdir(path.join(outputPath, path.dirname(files[fileIter].path)), {recursive: true})
+                    }
+                    await pipe(
+                        fileResult.content,
+                        map(chunk => chunk.slice()), // BufferList to Buffer
+                        toIterable.sink(fs.createWriteStream(fullFilePath))
+                    )
+                } else {
+                    // this is a dir
+                    if(!fs.existsSync(fullFilePath)) {
+                        await fs.promises.mkdir(fullFilePath, {recursive: true})
+                    }
+                }
             }
         }
     }
@@ -496,9 +518,9 @@ exports.SyncronizeRepository = async (projectInfo) => {
     await db.load();
     let currentData = db.get('repository');
     if (currentData !== null) {
-        let ipfsHash = currentData[currentData.length - 1].hash;// get latest hash
+        let ipfsHash = currentData[currentData.length - 1].content;// get latest hash
         let outputPath = path.join(projectInfo.localPath, 'repository-sync');
-        await exports.SaveIpfsFolderLocally(projectInfo, 'repository', ipfsHash, outputPath);
+        await exports.SaveIpfsFolderLocally(global.node.node, ipfsHash.files,ipfsHash.folder,  outputPath);
     }
 
 };

@@ -49,15 +49,7 @@ router.get('/', async (req, res) => {
         });
     }
 
-    setInterval(async function () {
-        if(global.orbit !== undefined) {
-            // framework.CheckOnlineStatus().then(function () {
-            p2pinterface.ShareUsers(global.projectInfo);
-            // });
-        }
-
-        }
-    ,3000);
+    framework.RunBackgroundTasks();
 
     return res.render('home', {projectInfo: global.projectInfo});
 
