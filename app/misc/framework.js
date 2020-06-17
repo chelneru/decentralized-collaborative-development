@@ -358,15 +358,19 @@ exports.RetrieveExtensionData = async (projectInfo, extensionName, data) => {
                 .collect()
                 .map((e) => e.payload.value);
 
-            if (result !== null && result[0] !== undefined) {
-                let content = result[0].content;// get latest hash
-                if (content.length > 0) {
-                    await exports.SaveIpfsFolderLocally(global.node.node, content.files, content.folder, extensionDataPath);
+            if (result !== null) {
+                if (result.length > 0) {
+                    let content = result[0].content;// get latest hash
+                    if (content.length > 0) {
+                        await exports.SaveIpfsFolderLocally(global.node.node, content.files, content.folder, extensionDataPath);
+                    }
                 }
+
             } else {
+                console.log('Unable to find hash for extension ', extensionName, ":", JSON.stringify(result))
                 return {status: false, message: 'hash not found'};
             }
-            console.log('Retrieving data for extension '+extensionName+' :'+JSON.stringify(result));
+            console.log('Retrieving data for extension ' + extensionName + ' :' + JSON.stringify(result));
 
             return {status: true};
         } else {
@@ -374,11 +378,13 @@ exports.RetrieveExtensionData = async (projectInfo, extensionName, data) => {
             let result = db.iterator({limit: -1})
                 .collect()
                 .map((e) => e.payload.value);
-            console.log('Retrieving data for extension '+extensionName+' :'+JSON.stringify(result));
+           // console.log('Retrieving data for extension '+extensionName+' :'+JSON.stringify(result));
 
             if (result !== null) {
                 return {status: true, content: result};
             } else {
+                console.log('Unable to find hash for extension ',extensionName,":",JSON.stringify(result))
+
                 return {status: false, message: 'hash not found'};
             }
         }
