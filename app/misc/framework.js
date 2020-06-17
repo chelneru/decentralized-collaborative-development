@@ -364,15 +364,18 @@ exports.RetrieveExtensionData = async (projectInfo, extensionName, data) => {
                     await exports.SaveIpfsFolderLocally(global.node.node, content.files, content.folder, extensionDataPath);
                 }
             } else {
-                console.log(JSON.stringify(result));
                 return {status: false, message: 'hash not found'};
             }
+            console.log('Retrieving data for extension '+extensionName+' :'+JSON.stringify(result));
+
             return {status: true};
         } else {
             //for chat we retrieve all messages
             let result = db.iterator({limit: -1})
                 .collect()
                 .map((e) => e.payload.value);
+            console.log('Retrieving data for extension '+extensionName+' :'+JSON.stringify(result));
+
             if (result !== null) {
                 return {status: true, content: result};
             } else {
@@ -387,6 +390,8 @@ exports.RetrieveExtensionData = async (projectInfo, extensionName, data) => {
 
 };
 exports.PublishExtensionData = async (projectInfo, extensionName, data) => {
+    console.log('Adding submission for '+extensionName+' '+JSON.stringify(data));
+
     try {
         let dbObject = null;
         if (extensionName != 'chat') {
@@ -465,6 +470,7 @@ exports.CheckOnlineStatus = async () => {
 
 exports.PublishLocalRepository = async (projectInfo) => {
     let result = await exports.AddFolderToIpfs(global.node.node,path.join(projectInfo.localPath, 'repository'));
+    console.log('Publishing repository :'+JSON.stringify(result));
 
     let dbObject = {
         content: result, //IPFS hash to the content
@@ -474,6 +480,7 @@ exports.PublishLocalRepository = async (projectInfo) => {
         },
         cTime: moment().format("DD-MM-YYYY, hh:mm:ss a")
     };
+
     await exports.AppendRepoDB(projectInfo, dbObject);
     return {status: true, message: ''};
 };
@@ -520,6 +527,8 @@ exports.SyncronizeRepository = async (projectInfo) => {
     if (currentData !== null) {
         let ipfsHash = currentData[currentData.length - 1].content;// get latest hash
         let outputPath = path.join(projectInfo.localPath, 'repository-sync');
+        console.log('Retrieving repository :'+JSON.stringify(ipfsHash));
+
         await exports.SaveIpfsFolderLocally(global.node.node, ipfsHash.files,ipfsHash.folder,  outputPath);
     }
 
