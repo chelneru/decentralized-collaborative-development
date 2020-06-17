@@ -19,9 +19,25 @@ body {
     margin-right: 10px;
     margin-bottom: 15px;
 }
+
+.management.component {
+    height: unset;
+}
 .component:nth-child(even) {
     margin-right: 0;
     width: 49.5%;
+}
+@media screen and (max-width: 1000px) {
+    .component {
+        width: 100%;
+
+    }
+    @media screen and (max-width: 1000px) {
+        .component:nth-child(even) {
+            width: 100%;
+
+        }
+    }
 }
 .main-component {
     background-color: white;
