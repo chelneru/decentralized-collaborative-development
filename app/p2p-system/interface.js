@@ -217,7 +217,6 @@ exports.RetrieveSharedData = async (projectInfo) => {
         }
         //add shared data from framework
         result.push({name: 'framework', data: db.get('framework')});
-        // console.log('Shared data: ',JSON.stringify(result));F
         return {status: true, content: result};
     } catch (e) {
         return {status: false, content: null, message: e.toString()};

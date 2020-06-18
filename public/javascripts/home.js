@@ -25,6 +25,9 @@ $(document).ready(function () {
                 setTimeout(function () {
 
                     $('.webui-iframe').attr('src', 'http://localhost:3010');
+                    // setInterval(function (){
+                    //     $('.webui-iframe').attr('src', 'http://localhost:3010')
+                    // },6000);
                 }, 2000);
 
             }

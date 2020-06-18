@@ -361,7 +361,7 @@ exports.RetrieveExtensionData = async (projectInfo, extensionName, data) => {
             if (result !== null) {
                 if (result.length > 0) {
                     let content = result[0].content;// get latest hash
-                    if (content.length > 0) {
+                    if (content != null) {
                         await exports.SaveIpfsFolderLocally(global.node.node, content.files, content.folder, extensionDataPath);
                     }
                 }
@@ -491,6 +491,8 @@ exports.PublishLocalRepository = async (projectInfo) => {
     return {status: true, message: ''};
 };
 exports.SaveIpfsFolderLocally = async (ipfs,files, parentFolder, outputPath) => {
+    const del = require('del');
+    await del([path.join(outputPath,'*.*')]);
     console.log('Saving file(s)');
 
     const toIterable = require('stream-to-it')
@@ -541,6 +543,7 @@ exports.SyncronizeRepository = async (projectInfo) => {
 };
 
 exports.StartExtensionModules = async () => {
+    global.startedModules = true;
     var fork = require('child_process').fork;
     var appRoot = process.cwd();
     var childGit = fork(path.join(appRoot, `/git-extension-module/bin/www`));
