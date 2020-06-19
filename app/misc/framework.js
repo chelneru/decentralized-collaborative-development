@@ -203,6 +203,7 @@ exports.AddProjectIPFS = async (projectID, databases, modules) => {
     }
     await p2pinterface.AddUserToDatabase(global.projectInfo, global.appConfig.user.name, global.appConfig.user.email, global.appConfig.user.password, global.node.id);
     global.appConfig.projects[projectIndex] = global.projectInfo;
+    console.log('Final received project info ',JSON.stringify(global.projectInfo));
     exports.SaveAppConfig();
     return {status: true, message: 'success'};
 
@@ -348,6 +349,7 @@ exports.RetrieveExtensionData = async (projectInfo, extensionName, data) => {
         if (global.orbit === undefined) {
             throw "Orbit is not initialized when trying to retrieve extension data from " + extensionName + "DB";
         }
+        console.log('Retrieving extensions data from projectinfo ',JSON.stringify(projectInfo));
         const db = await global.orbit.open(projectInfo[extensionName + 'DB'].address);
         await db.load();
 
