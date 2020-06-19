@@ -349,7 +349,7 @@ exports.RetrieveExtensionData = async (projectInfo, extensionName, data) => {
         if (global.orbit === undefined) {
             throw "Orbit is not initialized when trying to retrieve extension data from " + extensionName + "DB";
         }
-        console.log('Retrieving extensions data from projectinfo ',JSON.stringify(projectInfo));
+        // console.log('Retrieving extensions data from projectinfo ',JSON.stringify(projectInfo));
         const db = await global.orbit.open(projectInfo[extensionName + 'DB'].address);
         await db.load();
 
