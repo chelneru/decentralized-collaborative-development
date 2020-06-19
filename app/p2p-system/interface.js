@@ -249,6 +249,7 @@ exports.GetSwarmKeyContents = (projectInfo) => {
 exports.ShareUsers = async (projectInfo) => {
 
     let shared_data = await exports.RetrieveSharedData(projectInfo);
+    if(shared_data.content !== null) {
     let users_list = shared_data.content.find(obj => obj.name === "framework");
     let identical = true;
     //compare existing users lists with the one from the shared data database
@@ -275,5 +276,9 @@ exports.ShareUsers = async (projectInfo) => {
             console.log('The users list has been updated!');
             return exports.PublishSharedData(projectInfo, 'framework', global.users);
         }
+    }
+    }
+    else{
+        console.log('When trying to share users the content is null',JSON.stringify(shared_data));
     }
 }
