@@ -18,7 +18,49 @@ exports.LoadAppConfig = () => {
         console.log('Error reading app config file: ', err);
     }
 };
+exports.StripeComplexDataFromSaving = (filecontent) =>{
+    if(filecontent.previousProject.usersDB !== undefined) {
+        delete filecontent.previousProject.usersDB.instance;
+    }
+    if(filecontent.previousProject.repoDB !== undefined) {
+        delete filecontent.previousProject.repoDB.instance;
+    }
+    if(filecontent.previousProject.sharedDataDB !== undefined) {
+        delete filecontent.previousProject.sharedDataDB.instance;
+    }
+    if(filecontent.previousProject.gitDB !== undefined) {
+        delete filecontent.previousProject.gitDB.instance;
+    }
+    if(filecontent.previousProject.chatDB !== undefined) {
+        delete filecontent.previousProject.chatDB.instance;
+    }
+    if(filecontent.previousProject.chatDB !== undefined) {
+        delete filecontent.previousProject.chatDB.instance;
+    }
 
+    for(let iter=0;iter< filecontent.projects.length;iter++) {
+
+        if(filecontent.projects[iter].usersDB !== undefined) {
+            delete filecontent.projects[iter].usersDB.instance;
+        }
+        if(filecontent.projects[iter].repoDB !== undefined) {
+            delete filecontent.projects[iter].repoDB.instance;
+        }
+        if(filecontent.projects[iter].sharedDataDB !== undefined) {
+            delete filecontent.projects[iter].sharedDataDB.instance;
+        }
+        if(filecontent.projects[iter].gitDB !== undefined) {
+            delete filecontent.projects[iter].gitDB.instance;
+        }
+        if(filecontent.projects[iter].chatDB !== undefined) {
+            delete filecontent.projects[iter].chatDB.instance;
+        }
+        if(filecontent.projects[iter].chatDB !== undefined) {
+            delete filecontent.projects[iter].chatDB.instance;
+        }
+    }
+    return filecontent;
+};
 exports.CheckAppConfig = () => {
     global.userPath = path.join(os.homedir(), 'colligo');
     let configPath = path.join(global.userPath, 'config');
@@ -29,8 +71,9 @@ exports.SaveAppConfig = () => {
     let configPath = path.join(global.userPath, 'config');
 
     if (fs.existsSync(configPath)) {
-
-        fs.writeFileSync(configPath, JSON.stringify(global.appConfig));
+        var fileContent = {...global.appConfig};
+        let resultFileContent  = exports.StripeComplexDataFromSaving(fileContent);
+        fs.writeFileSync(configPath, JSON.stringify(resultFileContent));
     } else {
         console.log('unable to find config file at:' + configPath);
     }
@@ -152,7 +195,8 @@ exports.CreateProject = async (projectPath, projectName, modules, p2psystem) => 
                 }
             }
         }
-
+        //initialize databases
+        await exports.InitializeProjectDatabases();
         await p2pinterface.AddUserToDatabase(result.projectInfo, global.appConfig.user.name, global.appConfig.user.email, global.appConfig.user.password, global.node.id);
         let projectIndex = global.appConfig.projects.findIndex(i => i.id === result.projectInfo.id);
         if (projectIndex >= 0) {
@@ -179,6 +223,49 @@ exports.GetProject = (projectId) => {
     return null;
 }
 
+exports.InitializeProjectDatabases = async() => {
+    if (global.initialize_database !== true) {
+        global.initialize_database = true;
+        try {
+            if (global.projectInfo.usersDB !== undefined && global.projectInfo.usersDB.address !== undefined) {
+                global.projectInfo.usersDB.instance = await global.orbit.open(global.projectInfo.usersDB.address);
+                console.log('usersDB' + ' initialized.');
+
+            }
+
+            if (global.projectInfo.repoDB !== undefined && global.projectInfo.repoDB.address !== undefined) {
+                global.projectInfo.repoDB.instance = await global.orbit.open(global.projectInfo.repoDB.address);
+                console.log('repoDB' + ' initialized.');
+
+
+            }
+            if (global.projectInfo.sharedDataDB !== undefined && global.projectInfo.sharedDataDB.address !== undefined) {
+                global.projectInfo.sharedDataDB.instance = await global.orbit.open(global.projectInfo.sharedDataDB.address);
+                console.log('sharedDataDB' + ' initialized.');
+
+            }
+        } catch (e) {
+            console.log('Error initializng main databases: ', e.toString());
+        }
+
+
+        for (let modIter = 0; modIter < global.projectInfo.modules.length; modIter++) {
+            try {
+                if (global.projectInfo.modules[modIter].hasDB === true && global.projectInfo[global.projectInfo.modules[modIter].name + 'DB'] !== undefined) {
+                    try {
+                        global.projectInfo[global.projectInfo.modules[modIter].name + 'DB'].instance = await global.orbit.open(global.projectInfo[global.projectInfo.modules[modIter].name + 'DB'].address);
+                        console.log(global.projectInfo.modules[modIter].name + 'DB' + ' initialized.');
+                    } catch (e) {
+                        console.log('Unable to initialize the ' + global.projectInfo.modules[modIter].name + ' database', e.toString());
+                    }
+                }
+            } catch (e) {
+                console.log('Error initializng the databases: ', e.toString());
+            }
+        }
+    }
+}
+
 exports.AddProjectIPFS = async (projectID, databases, modules) => {
     let projectIndex = global.appConfig.projects.findIndex(i => i.id === global.projectInfo.id)
     global.projectInfo.modules = modules;
@@ -193,6 +280,7 @@ exports.AddProjectIPFS = async (projectID, databases, modules) => {
                 global.projectInfo[databases[dbIter].name].publicKey = db.identity.publicKey;
                 global.projectInfo[databases[dbIter].name].signatures = db.identity.signatures;
                 global.projectInfo[databases[dbIter].name].address = db.address.toString();
+                global.projectInfo[databases[dbIter].name].instance = db;
 
             } else {
                 global.projectInfo[databases[dbIter].name] = {name: databases[dbIter].name};
@@ -321,7 +409,7 @@ exports.AppendRepoDB = async (projectInfo, dataObject) => {
     if (global.orbit === undefined) {
         throw "Orbit is not initialized when trying to append to repository DB";
     }
-    const db = await global.orbit.open(projectInfo.repoDB.address);
+    const db = projectInfo.repoDB.instance;
     await db.load();
     let currentData = db.get('repository');
     console.log(JSON.stringify(currentData));
@@ -345,7 +433,7 @@ exports.AppendExtensionDB = async (projectInfo, extensionName, dbObject) => {
     if (global.orbit === undefined) {
         throw "Orbit is not initialized when trying to append to extension " + extensionName + "DB";
     }
-    const db = await global.orbit.open(projectInfo[extensionName + 'DB'].address);
+    const db = projectInfo[extensionName + 'DB'].instance;
     await db.load();
     db.add(dbObject);
     // console.log('Current contents of ', extensionName + 'DB', ' is ', JSON.stringify(db.iterator({limit: -1})
@@ -358,7 +446,11 @@ exports.RetrieveExtensionData = async (projectInfo, extensionName, data) => {
             throw "Orbit is not initialized when trying to retrieve extension data from " + extensionName + "DB";
         }
         // console.log('Retrieving extensions data from projectinfo ',JSON.stringify(projectInfo));
-        const db = await global.orbit.open(projectInfo[extensionName + 'DB'].address);
+
+        const db = projectInfo[extensionName + 'DB'].instance;
+        if(projectInfo[extensionName + 'DB'].instance === undefined) {
+            throw "Database not initialized when trying to retrieve extension data from " + extensionName + "DB";
+        }
         await db.load();
 
         if (extensionName != 'chat') {
@@ -429,6 +521,7 @@ exports.PublishExtensionData = async (projectInfo, extensionName, data) => {
 
         }
         await exports.AppendExtensionDB(projectInfo, extensionName, dbObject);
+        console.log('Successfully added submission for '+extensionName+' '+JSON.stringify(data));
 
         return {status: true, message: ''};
 
@@ -444,7 +537,7 @@ exports.GetNetworkUsers = async (projectInfo) => {
             throw "Orbit is not initialized when trying to retrieve network users";
         }
         if (projectInfo.usersDB.address !== undefined) {
-            const db = await global.orbit.open(projectInfo.usersDB.address);
+            const db = projectInfo.usersDB.instance;
             await db.load();
             return db.iterator({limit: -1})
                 .collect()
@@ -539,7 +632,7 @@ exports.SyncronizeRepository = async (projectInfo) => {
     if (global.orbit === undefined) {
         throw "Orbit is not initialized when trying to synchronize repository";
     }
-    const db = await global.orbit.open(projectInfo.repoDB.address);
+    const db = projectInfo.repoDB.instance;
     await db.load();
     let currentData = db.get('repository');
     if (currentData !== null) {

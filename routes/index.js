@@ -32,8 +32,10 @@ router.get('/', async (req, res) => {
             bootstrap: global.projectInfo.bootstrapNodes
         }, 'ipfs').then(function () {
             if (global.orbit === undefined) {
-                p2pinterface.InitializeOrbitInstance(global.projectInfo.localPath).then(function () {
+                p2pinterface.InitializeOrbitInstance(global.projectInfo.localPath).then(async function () {
                     framework.SaveAppConfig();
+                    await framework.InitializeProjectDatabases();
+
                 });
             }else{
                 framework.SaveAppConfig();

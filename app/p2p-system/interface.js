@@ -56,34 +56,34 @@ exports.GetCurrentProjectDatabases = () => {
     }
     return databases;
 };
-exports.AddDatabaseCollaborator = async (projectId, collaboratorPublicKey) => {
-    let index = framework.GetProject(projectId);
-    if (index !== null) {
-        try {
-            let projectInfo = global.appConfig.project[index];
-            const dbUsers = await global.orbit.open(projectInfo.usersDB.address);
-            await dbUsers.access.grant('write', collaboratorPublicKey) // grant access to collaborator
-            const dbRepo = await global.orbit.open(projectInfo.repoDB.address);
-            await dbRepo.access.grant('write', collaboratorPublicKey) // grant access to collaborator
-            let moduleDB = null;
-            for (let modIter = 0; modIter < projectInfo.modules.length; modIter++) {
-                if (projectInfo.modules[modIter].hasDB === true) {
-                    moduleDB = await global.orbit.open(projectInfo[projectInfo.modules[modIter].name + 'DB'].address);
-                    moduleDB.access.grant('write', collaboratorPublicKey) // grant access to collaborator
-                }
-            }
-            global.appConfig.project[index] = projectInfo;
-            framework.SaveAppConfig();
-            console.log('Added collaborator to all project\'s databases');
-        } catch (e) {
-            console.log('Error when adding collaborator', e.toString());
-
-        }
-    } else {
-        console.log('project not found when trying to add database collaborator');
-    }
-
-}
+// exports.AddDatabaseCollaborator = async (projectId, collaboratorPublicKey) => {
+//     let index = framework.GetProject(projectId);
+//     if (index !== null) {
+//         try {
+//             let projectInfo = global.appConfig.project[index];
+//             const dbUsers = projectInfo.usersDB.instance;
+//             await dbUsers.access.grant('write', collaboratorPublicKey) // grant access to collaborator
+//             const dbRepo = await global.orbit.open(projectInfo.repoDB.address);
+//             await dbRepo.access.grant('write', collaboratorPublicKey) // grant access to collaborator
+//             let moduleDB = null;
+//             for (let modIter = 0; modIter < projectInfo.modules.length; modIter++) {
+//                 if (projectInfo.modules[modIter].hasDB === true) {
+//                     moduleDB = await global.orbit.open(projectInfo[projectInfo.modules[modIter].name + 'DB'].address);
+//                     moduleDB.access.grant('write', collaboratorPublicKey) // grant access to collaborator
+//                 }
+//             }
+//             global.appConfig.project[index] = projectInfo;
+//             framework.SaveAppConfig();
+//             console.log('Added collaborator to all project\'s databases');
+//         } catch (e) {
+//             console.log('Error when adding collaborator', e.toString());
+//
+//         }
+//     } else {
+//         console.log('project not found when trying to add database collaborator');
+//     }
+//
+// }
 exports.CreateDatabase = async (purpose, projectId,dbType) => {
 
     let db = null;
@@ -105,7 +105,6 @@ exports.CreateDatabase = async (purpose, projectId,dbType) => {
             global.appConfig.projects[index].usersDB.address = db.address.toString();
             global.appConfig.projects[index].usersDB.toJSON = null; //the toJSON() functions does not include the address field . So using JSON.stringify would not include that field
 
-            framework.SaveAppConfig();
             break;
         case 'repository':
             db = await global.orbit.create('network.repository', 'keyvalue',
@@ -122,7 +121,6 @@ exports.CreateDatabase = async (purpose, projectId,dbType) => {
             global.appConfig.projects[index].repoDB.signatures = db.identity.signatures;
             global.appConfig.projects[index].repoDB.address = db.address.toString();
             global.appConfig.projects[index].repoDB.toJSON = null; //the toJSON() functions does not include the address field . So using JSON.stringify would not include that field
-            framework.SaveAppConfig();
             break;
         case 'shared-data':
             db = await global.orbit.create('network.shared-data', 'keyvalue',
@@ -140,7 +138,6 @@ exports.CreateDatabase = async (purpose, projectId,dbType) => {
             global.appConfig.projects[index].sharedDataDB.signatures = db.identity.signatures;
             global.appConfig.projects[index].sharedDataDB.address = db.address.toString();
             global.appConfig.projects[index].sharedDataDB.toJSON = null; //the toJSON() functions does not include the address field . So using JSON.stringify would not include that field
-            framework.SaveAppConfig();
             break;
         case 'git':
         case 'chat':
@@ -164,7 +161,6 @@ exports.CreateDatabase = async (purpose, projectId,dbType) => {
             global.appConfig.projects[index][purpose+'DB'].address = db.address.toString();
             global.appConfig.projects[index][purpose+'DB'].toJSON = null; //the toJSON() functions does not include the address field . So using JSON.stringify would not include that field
 
-            framework.SaveAppConfig();
             break;
     }
 }
@@ -189,27 +185,28 @@ exports.AddProjectDatabase = async (purpose, projectId, dbInfo) => {
 }
 exports.AddUserToDatabase = async (projectInfo,userName,userEmail,userPassword,ipfsId) =>
 {
-    const db = await global.orbit.open(projectInfo.usersDB.address);
+    const db = projectInfo.usersDB.instance;
     await db.load();
     db.add({email:userEmail,pass:userPassword,name:userName,ipfsId:ipfsId});
 
 }
 exports.PublishSharedData = async (projectInfo,extensionName,data) =>
 {
+    let result = null;
     try {
-    const db = await global.orbit.open(projectInfo.sharedDataDB.address);
+    const db = projectInfo.sharedDataDB.instance;
     await db.load();
     db.put(extensionName, data);
-    return {status:true};
+        result= {status:true};
     }
     catch (e) {
-        return {status:false,message:e.toString()};
+        result = {status:false,message:e.toString()};
     }
-
+return  result;
 }
 exports.RetrieveSharedData = async (projectInfo) => {
     try {
-        const db = await global.orbit.open(projectInfo.sharedDataDB.address);
+        const db = projectInfo.sharedDataDB.instance;
         await db.load();
         let result = [];
         for (let iterMod = 0; iterMod < projectInfo.modules.length; iterMod++) {
@@ -225,7 +222,7 @@ exports.RetrieveSharedData = async (projectInfo) => {
 }
 exports.AuthenticateUserOverNetwork = async (projectInfo,userEmail,userPassword) => {
     if (projectInfo.usersDB !== undefined) {
-        const db = await global.orbit.open(projectInfo.usersDB.address);
+        const db = projectInfo.usersDB.instance;
         await db.load();
         const users = db.iterator().collect().map(e => e.payload.value)
         for (let iter = 0; iter < users.length; iter++) {

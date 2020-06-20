@@ -7,15 +7,19 @@
 }
 .login-tab {
     display: none;
+    margin-top: 20px;
 }
 .register-tab {
     display: none;
+    margin-top: 20px;
 }
 .join-proj-tab {
     display: none;
+    margin-top: 20px;
 }
 .create-proj-tab {
     display: none;
+    margin-top: 20px;
 }
 
 

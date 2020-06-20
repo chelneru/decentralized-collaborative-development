@@ -29,7 +29,7 @@ router.post('/update-config', async (req, res) => {
 router.post('/publish-shared-data', async (req, res) => {
     let extensionName = req.body.name;
     let extensionData = req.body.data;
-    let result = p2pinterface.PublishSharedData(global.projectInfo, extensionName, extensionData);
+    let result = await p2pinterface.PublishSharedData(global.projectInfo, extensionName, extensionData);
     return res.json(result);
 });
 
@@ -68,6 +68,8 @@ router.post('/publish-data', async (req, res) => {
             return res.json(result);
 
         } catch (e) {
+            let result = {status:false};
+
             console.log('Error publishing data for extension ' + extensionName + ' :' + e.toString());
         }
         return res.json(result);
@@ -80,6 +82,7 @@ router.post('/update-data', async (req, res) => {
     let extensionName = req.body.name;
     let data = null;
     let module = global.projectInfo.modules.find(i => i.name === extensionName);
+    let result = null;
     if (module !== undefined) {
         if (module.dbContent === "ipfsHashes") {
             data = {};
@@ -89,10 +92,11 @@ router.post('/update-data', async (req, res) => {
             data = req.body.data;
         }
         try {
-            let result = await framework.RetrieveExtensionData(global.projectInfo, extensionName, data);
+            result = await framework.RetrieveExtensionData(global.projectInfo, extensionName, data);
             return res.json(result);
 
         } catch (e) {
+            result = {status:false};
             console.log('Error retrieving data for extension ' + extensionName + ': ' + e.toString())
         }
         return res.json(result);
