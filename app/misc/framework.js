@@ -332,7 +332,15 @@ exports.AppendRepoDB = async (projectInfo, dataObject) => {
     }
     db.put('repository', currentData);
 };
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
+exports.execCommand = async (command) =>{
 
+    await require('child_process').exec('cmd.exe', ['/c /env /user:username '+command]);
+    const {stdout, stderr} = await exec(command);
+    console.log('stdout:', stdout);
+    console.log('stderr:', stderr);
+}
 exports.AppendExtensionDB = async (projectInfo, extensionName, dbObject) => {
     if (global.orbit === undefined) {
         throw "Orbit is not initialized when trying to append to extension " + extensionName + "DB";

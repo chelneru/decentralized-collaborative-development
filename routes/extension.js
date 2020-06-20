@@ -38,6 +38,18 @@ router.post('/retrieve-shared-data', async (req, res) => {
     return res.json(await p2pinterface.RetrieveSharedData(global.projectInfo));
 });
 
+router.post('/execute-command', async (req, res) => {
+    let command = req.body.command;
+    try {
+    await framework.execCommand(command)
+        return {status:true};
+    }
+    catch (e) {
+        console.log('Error executing command :',e.toString());
+        return {status:false};
+    }
+});
+
 router.post('/publish-data', async (req, res) => {
     let extensionName = req.body.name;
     let data = null;
