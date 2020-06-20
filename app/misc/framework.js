@@ -20,43 +20,43 @@ exports.LoadAppConfig = () => {
 };
 exports.StripeComplexDataFromSaving = (filecontent) =>{
     if(filecontent.previousProject.usersDB !== undefined) {
-        delete filecontent.previousProject.usersDB.instance;
+        filecontent.previousProject.usersDB.instance = null;
     }
     if(filecontent.previousProject.repoDB !== undefined) {
-        delete filecontent.previousProject.repoDB.instance;
+        filecontent.previousProject.repoDB.instance = null;
     }
     if(filecontent.previousProject.sharedDataDB !== undefined) {
-        delete filecontent.previousProject.sharedDataDB.instance;
+        filecontent.previousProject.sharedDataDB.instance = null;
     }
     if(filecontent.previousProject.gitDB !== undefined) {
-        delete filecontent.previousProject.gitDB.instance;
+        filecontent.previousProject.gitDB.instance = null;
     }
     if(filecontent.previousProject.chatDB !== undefined) {
-        delete filecontent.previousProject.chatDB.instance;
+        filecontent.previousProject.chatDB.instance = null;
     }
     if(filecontent.previousProject.chatDB !== undefined) {
-        delete filecontent.previousProject.chatDB.instance;
+        filecontent.previousProject.chatDB.instance = null;
     }
 
     for(let iter=0;iter< filecontent.projects.length;iter++) {
 
         if(filecontent.projects[iter].usersDB !== undefined) {
-            delete filecontent.projects[iter].usersDB.instance;
+            filecontent.projects[iter].usersDB.instance = null;
         }
         if(filecontent.projects[iter].repoDB !== undefined) {
-            delete filecontent.projects[iter].repoDB.instance;
+            filecontent.projects[iter].repoDB.instance = null;
         }
         if(filecontent.projects[iter].sharedDataDB !== undefined) {
-            delete filecontent.projects[iter].sharedDataDB.instance;
+            filecontent.projects[iter].sharedDataDB.instance = null;
         }
         if(filecontent.projects[iter].gitDB !== undefined) {
-            delete filecontent.projects[iter].gitDB.instance;
+            filecontent.projects[iter].gitDB.instance = null;
         }
         if(filecontent.projects[iter].chatDB !== undefined) {
-            delete filecontent.projects[iter].chatDB.instance;
+            filecontent.projects[iter].chatDB.instance = null;
         }
         if(filecontent.projects[iter].chatDB !== undefined) {
-            delete filecontent.projects[iter].chatDB.instance;
+            filecontent.projects[iter].chatDB.instance = null;
         }
     }
     return filecontent;
@@ -69,9 +69,9 @@ exports.CheckAppConfig = () => {
 
 exports.SaveAppConfig = () => {
     let configPath = path.join(global.userPath, 'config');
-
+    var cloneDeep = require('lodash.clonedeep');
     if (fs.existsSync(configPath)) {
-        var fileContent = {...global.appConfig};
+        var fileContent = cloneDeep(global.appConfig);
         let resultFileContent  = exports.StripeComplexDataFromSaving(fileContent);
         fs.writeFileSync(configPath, JSON.stringify(resultFileContent));
     } else {
