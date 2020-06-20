@@ -14,7 +14,7 @@ let usersRouter = require('./routes/users');
 let nodeIpfsRouter = require('./routes/node-info');
 let extensionRouter = require('./routes/extension');
 
-
+require('events').defaultMaxListeners = 30;
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
