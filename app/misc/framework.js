@@ -291,7 +291,7 @@ exports.AddProjectIPFS = async (projectID, databases, modules) => {
     }
     await p2pinterface.AddUserToDatabase(global.projectInfo, global.appConfig.user.name, global.appConfig.user.email, global.appConfig.user.password, global.node.id);
     global.appConfig.projects[projectIndex] = global.projectInfo;
-    console.log('Final received project info ',JSON.stringify(global.projectInfo));
+    console.log('Final received project info ');
     exports.SaveAppConfig();
     return {status: true, message: 'success'};
 
