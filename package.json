@@ -24,7 +24,7 @@
     "morgan": "~1.9.1",
     "node-rsa": "^1.0.8",
     "orbit-db": "^0.24.1",
-    "pug": "^2.0.4",
+    "pug": "^3.0.1",
     "pull-stream": "^3.6.14",
     "readline-sync": "^1.4.10",
     "streaming-iterables": "^4.1.2"
